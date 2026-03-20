@@ -68,6 +68,27 @@ library
     , plutus-tx
     , text
 
+executable datum-collector
+  import: lang
+  hs-source-dirs: exe/datum-collector
+  main-is: Main.hs
+  build-depends:
+    base ^>=4.18.2.1
+    , base16-bytestring
+    , blockfrost-api
+    , blockfrost-client-core
+    , bytestring
+    , cardano-api
+    , cardano-datum-formats
+    , containers
+    , convex-blockfrost
+    , convex-base
+    , convex-optics
+    , lens
+    , mtl
+    , optparse-applicative
+    , text
+
 test-suite cardano-datum-formats-test
   import: lang
   type: exitcode-stdio-1.0
