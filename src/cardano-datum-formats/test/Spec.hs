@@ -7,8 +7,22 @@ import Cardano.Protocol.MinSwap.Test qualified as MinSwap
 import Cardano.Protocol.Pulse.Test qualified as Pulse
 import Cardano.Protocol.Strike.Test qualified as Strike
 import Cardano.Protocol.Sundae.Test qualified as Sundae
+import Cardano.Protocol.VyFinance.Test qualified as VyFinance
 import Cardano.Protocol.WingRiders.Test qualified as WingRiders
 import Test.Tasty (defaultMain, testGroup)
 
 main :: IO ()
-main = defaultMain $ testGroup "cardano-datum-formats" [GeniusYield.tests, Indigo.tests, Liqwid.tests, MinSwap.tests, Pulse.tests, Strike.tests, Sundae.tests, WingRiders.tests]
+main =
+    defaultMain $
+        testGroup
+            "cardano-datum-formats"
+            [ GeniusYield.tests
+            , Indigo.tests
+            , Liqwid.tests
+            , MinSwap.tests
+            , Pulse.tests
+            , Strike.tests
+            , Sundae.tests
+            , VyFinance.tests
+            , WingRiders.tests
+            ]

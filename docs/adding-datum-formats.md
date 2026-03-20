@@ -71,6 +71,8 @@ This is the fastest way to prove the implementation matches the protocol’s pub
 
 Use `datum-collector` to capture real inline datums from live addresses or payment credentials and add a small number of decode tests for them.
 
+If the live UTxOs use datum hashes instead of inline datums, fall back to fetching the datum CBOR by hash from a chain API such as Blockfrost and use that in fixture tests.
+
 These tests protect against:
 
 - stale assumptions from old contract sources
@@ -87,6 +89,8 @@ The process we used for Sundae is the template for future protocols:
 2. Determine the payment credential for the script that holds the target UTxOs.
 3. Run `datum-collector` with either the full address or the payment credential.
 4. Keep a few distinct examples that cover materially different shapes.
+
+If `datum-collector` finds nothing, inspect the same live UTxOs for `data_hash` values and fetch the datum bodies directly. Some deployed protocols still use datum hashes for important state UTxOs.
 
 When the protocol exposes multiple pool families, collect examples from each family separately.
 
