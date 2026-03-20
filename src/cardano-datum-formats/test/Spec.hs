@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Cardano.Protocol.GeniusYield.Test qualified as GeniusYield
 import Cardano.Protocol.Indigo.Test qualified as Indigo
 import Cardano.Protocol.Liqwid.Test qualified as Liqwid
 import Cardano.Protocol.MinSwap.Test qualified as MinSwap
@@ -10,4 +11,4 @@ import Cardano.Protocol.WingRiders.Test qualified as WingRiders
 import Test.Tasty (defaultMain, testGroup)
 
 main :: IO ()
-main = defaultMain $ testGroup "cardano-datum-formats" [Indigo.tests, Liqwid.tests, MinSwap.tests, Pulse.tests, Strike.tests, Sundae.tests, WingRiders.tests]
+main = defaultMain $ testGroup "cardano-datum-formats" [GeniusYield.tests, Indigo.tests, Liqwid.tests, MinSwap.tests, Pulse.tests, Strike.tests, Sundae.tests, WingRiders.tests]

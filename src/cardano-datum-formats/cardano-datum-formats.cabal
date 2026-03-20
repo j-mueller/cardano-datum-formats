@@ -51,6 +51,8 @@ library
     Cardano.Asset.Pair
     Cardano.Data
     Cardano.Transaction.OutputReference
+    Cardano.Protocol.GeniusYield.Common
+    Cardano.Protocol.GeniusYield.PartialOrder
     Cardano.Protocol.Indigo.CDP
     Cardano.Protocol.Indigo.Common
     Cardano.Protocol.Indigo.Gov
@@ -130,6 +132,7 @@ test-suite cardano-datum-formats-test
   other-modules:
     Cardano.Protocol.MinSwap.Test
     Cardano.Protocol.Indigo.Test
+    Cardano.Protocol.GeniusYield.Test
     Cardano.Protocol.Liqwid.Test
     Cardano.Protocol.Pulse.Test
     Cardano.Protocol.Strike.Test
