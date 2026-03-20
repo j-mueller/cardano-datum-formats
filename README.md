@@ -8,6 +8,7 @@ Typed Haskell representations of Cardano protocol datums, plus tests against rou
 | --- | --- | --- |
 | MinSwap | Orders, pools | 🟢 |
 | Sundae | Orders, pools | 🟢 |
+| Indigo | `CDP`, `IAsset`, `Gov`, `InterestOracle`, `LRP`, `PriceOracle`, `StabilityPool`, `Staking` | 🟢 |
 | Pulse | `MarketInfo`, `Market`, `Order`, `SYVault`, `Oracle`, `YTStake` | 🟢 |
 | Liqwid | `Action`, `Loan`, `Market` | 🟠 |
 | WingRiders | Pools | 🟢 |

@@ -51,6 +51,15 @@ library
     Cardano.Asset.Pair
     Cardano.Data
     Cardano.Transaction.OutputReference
+    Cardano.Protocol.Indigo.CDP
+    Cardano.Protocol.Indigo.Common
+    Cardano.Protocol.Indigo.Gov
+    Cardano.Protocol.Indigo.IAsset
+    Cardano.Protocol.Indigo.InterestOracle
+    Cardano.Protocol.Indigo.LRP
+    Cardano.Protocol.Indigo.PriceOracle
+    Cardano.Protocol.Indigo.StabilityPool
+    Cardano.Protocol.Indigo.Staking
     Cardano.Protocol.MinSwap.Order
     Cardano.Protocol.MinSwap.Pool
     Cardano.Protocol.Liqwid.Action
@@ -84,6 +93,7 @@ library
     , plutus-core
     , plutus-ledger-api
     , plutus-tx
+    , containers
     , text
 
 executable datum-collector
@@ -114,6 +124,7 @@ test-suite cardano-datum-formats-test
   main-is: Spec.hs
   other-modules:
     Cardano.Protocol.MinSwap.Test
+    Cardano.Protocol.Indigo.Test
     Cardano.Protocol.Liqwid.Test
     Cardano.Protocol.Pulse.Test
     Cardano.Protocol.Sundae.Test
@@ -129,3 +140,4 @@ test-suite cardano-datum-formats-test
     , tasty-hunit
     , tasty-quickcheck
     , text
+    , containers
