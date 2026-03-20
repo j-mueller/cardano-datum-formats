@@ -4,14 +4,20 @@ Typed Haskell representations of Cardano protocol datums, plus tests against rou
 
 ## Supported Protocols
 
-| Protocol | Supported datum families |
-| --- | --- |
-| MinSwap | Orders, pools |
-| Sundae | Orders, pools |
-| Pulse | `MarketInfo`, `Market`, `Order`, `SYVault`, `Oracle`, `YTStake` |
-| Liqwid | `Action`, `Loan`, `Market` |
+| Protocol | Supported datum families | Stability |
+| --- | --- | --- |
+| MinSwap | Orders, pools | 🟢 |
+| Sundae | Orders, pools | 🟢 |
+| Pulse | `MarketInfo`, `Market`, `Order`, `SYVault`, `Oracle`, `YTStake` | 🟢 |
+| Liqwid | `Action`, `Loan`, `Market` | 🟠 |
+| WingRiders | Pools | 🟢 |
 
 Protocol-specific modules live under `Cardano.Protocol.*`.
+
+Stability notes:
+
+- `🟢`: derived primarily from protocol-owned contract code, SDKs, or equivalent primary sources, then checked against live chain data.
+- `🟠`: tested against live chain data, but some format recovery relied on non-primary public sources. This currently applies to Liqwid, where the public contract source situation was incomplete and we had to lean on third-party code plus live datum inspection.
 
 For notes on how new datum formats are added, see [`docs/adding-datum-formats.md`](./docs/adding-datum-formats.md).
 
