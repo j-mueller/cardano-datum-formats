@@ -77,6 +77,11 @@ library
     Cardano.Protocol.Sundae.Pool
     Cardano.Protocol.Sundae.V3.Order
     Cardano.Protocol.Sundae.V3.Pool
+    Cardano.Protocol.Strike.Common
+    Cardano.Protocol.Strike.Order
+    Cardano.Protocol.Strike.Pool
+    Cardano.Protocol.Strike.Position
+    Cardano.Protocol.Strike.Settings
     Cardano.Protocol.WingRiders.Pool
   build-depends:
     QuickCheck
@@ -127,6 +132,7 @@ test-suite cardano-datum-formats-test
     Cardano.Protocol.Indigo.Test
     Cardano.Protocol.Liqwid.Test
     Cardano.Protocol.Pulse.Test
+    Cardano.Protocol.Strike.Test
     Cardano.Protocol.Sundae.Test
     Cardano.Protocol.WingRiders.Test
     Cardano.Test.Utils

@@ -10,6 +10,7 @@ Typed Haskell representations of Cardano protocol datums, plus tests against rou
 | Sundae | Orders, pools | 🟢 |
 | Indigo | `CDP`, `IAsset`, `Gov`, `InterestOracle`, `LRP`, `PriceOracle`, `StabilityPool`, `Staking` | 🟢 |
 | Pulse | `MarketInfo`, `Market`, `Order`, `SYVault`, `Oracle`, `YTStake` | 🟢 |
+| Strike | `Order`, `Pool`, `Position`, `Settings` | 🟢 |
 | Liqwid | `Action`, `Loan`, `Market` | 🟠 |
 | WingRiders | Pools | 🟢 |
 
