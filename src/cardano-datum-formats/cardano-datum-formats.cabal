@@ -53,6 +53,10 @@ library
     Cardano.Transaction.OutputReference
     Cardano.Protocol.MinSwap.Order
     Cardano.Protocol.MinSwap.Pool
+    Cardano.Protocol.Liqwid.Action
+    Cardano.Protocol.Liqwid.Common
+    Cardano.Protocol.Liqwid.Loan
+    Cardano.Protocol.Liqwid.Market
     Cardano.Protocol.Pulse.Common
     Cardano.Protocol.Pulse.Market
     Cardano.Protocol.Pulse.MarketInfo
@@ -109,6 +113,7 @@ test-suite cardano-datum-formats-test
   main-is: Spec.hs
   other-modules:
     Cardano.Protocol.MinSwap.Test
+    Cardano.Protocol.Liqwid.Test
     Cardano.Protocol.Pulse.Test
     Cardano.Protocol.Sundae.Test
     Cardano.Test.Utils
