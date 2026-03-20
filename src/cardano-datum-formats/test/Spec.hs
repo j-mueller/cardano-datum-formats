@@ -1,7 +1,8 @@
 module Main (main) where
 
 import Cardano.Protocol.MinSwap.Test qualified as MinSwap
-import Test.Tasty (defaultMain)
+import Cardano.Protocol.Sundae.Test qualified as Sundae
+import Test.Tasty (defaultMain, testGroup)
 
 main :: IO ()
-main = defaultMain MinSwap.tests
+main = defaultMain $ testGroup "cardano-datum-formats" [MinSwap.tests, Sundae.tests]
