@@ -4,18 +4,18 @@ Typed Haskell representations of Cardano protocol datums, plus tests against rou
 
 ## Supported Protocols
 
-| Protocol | Supported datum families | Stability |
-| --- | --- | --- |
-| MinSwap | Orders, pools | 🟢 |
-| Sundae | Orders, pools | 🟢 |
-| Genius Yield | `PartialOrder`, `PartialOrderConfig`, `PartialOrderFeeOutput` | 🟢 |
-| Indigo | `CDP`, `IAsset`, `Gov`, `InterestOracle`, `LRP`, `PriceOracle`, `StabilityPool`, `Staking` | 🟢 |
-| Pulse | `MarketInfo`, `Market`, `Order`, `SYVault`, `Oracle`, `YTStake` | 🟢 |
-| Strike | `Order`, `Pool`, `Position`, `Settings` | 🟢 |
-| Liqwid | `Action`, `Loan`, `Market` | 🟠 |
-| MuesliSwap | Orders, pools | 🟢 |
-| VyFinance | Pools | 🟠 |
-| WingRiders | Pools | 🟢 |
+| Protocol | Supported datum families | Stability | Destination datum |
+| --- | --- | --- | --- |
+| MinSwap | Orders, pools | 🟢 | 🟢 |
+| Sundae | Orders, pools | 🟢 | 🟢 |
+| Genius Yield | `PartialOrder`, `PartialOrderConfig`, `PartialOrderFeeOutput` | 🟢 | 🟠 |
+| Indigo | `CDP`, `IAsset`, `Gov`, `InterestOracle`, `LRP`, `PriceOracle`, `StabilityPool`, `Staking` | 🟢 | ⚪ |
+| Pulse | `MarketInfo`, `Market`, `Order`, `SYVault`, `Oracle`, `YTStake` | 🟢 | 🟢 |
+| Strike | `Order`, `Pool`, `Position`, `Settings` | 🟢 | 🟠 |
+| Liqwid | `Action`, `Loan`, `Market` | 🟠 | ⚪ |
+| MuesliSwap | Orders, pools | 🟢 | 🟢 |
+| VyFinance | Pools | 🟠 | ⚪ |
+| WingRiders | Pools | 🟢 | ⚪ |
 
 Protocol-specific modules live under `Cardano.Protocol.*`.
 
@@ -24,6 +24,12 @@ Stability notes:
 - `🟢`: derived primarily from protocol-owned contract code, SDKs, or equivalent primary sources, then checked against live chain data.
 - `🟠`: tested against live chain data, but some format recovery relied on non-primary public sources. This currently applies to Liqwid, where the public contract source situation was incomplete and we had to lean on third-party code plus live datum inspection.
 - `🟠`: this also currently applies to VyFinance, where the public app API plus live datum inspection were enough to pin down pool state, but I did not find a protocol-owned contract source for the deployed pool and order layouts.
+
+Destination datum notes:
+
+- `🟢`: the protocol's order model includes an explicit destination address together with a datum or datum-hash field. Sundae, MuesliSwap, MinSwap, and Pulse qualify under this rule in the current codebase.
+- `🟠`: the protocol has order support, but the current representation does not include that destination-address-plus-datum pattern.
+- `⚪`: no order support is currently implemented in this repo.
 
 For notes on how new datum formats are added, see [`docs/adding-datum-formats.md`](./docs/adding-datum-formats.md).
 
