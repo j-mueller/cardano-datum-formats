@@ -21,6 +21,7 @@ import Data.Text.Encoding qualified as Text
 import Options.Applicative (
     Parser,
     ParserInfo,
+    auto,
     argument,
     customExecParser,
     disambiguate,
@@ -29,28 +30,33 @@ import Options.Applicative (
     help,
     helper,
     info,
+    long,
     metavar,
+    option,
     prefs,
     progDesc,
+    short,
     showHelpOnEmpty,
     showHelpOnError,
     str,
+    value,
  )
 import System.Environment (lookupEnv)
 import System.Exit (die)
 
-newtype Args = Args
+data Args = Args
     { target :: String
+    , limit :: Int
     }
 
 type AppM = ExceptT String (BlockfrostT IO)
 
 main :: IO ()
 main = do
-    Args{target} <- customExecParser opts prefsInfo
+    Args{target, limit} <- customExecParser opts prefsInfo
     project <- getBlockfrostProject
     paymentCredential <- either die pure (parseTarget target)
-    datums <- runCollector project paymentCredential
+    datums <- runCollector project paymentCredential limit
     case datums of
         [] -> die "No inline datums found for this target"
         xs -> mapM_ (putStrLn . Text.unpack) xs
@@ -72,6 +78,14 @@ parseArgs =
         <$> argument
             str
             (metavar "TARGET" <> help "A Shelley address, or a payment credential as key:<hex>, script:<hex>, or bare key-hash hex")
+        <*> option
+            auto
+            ( long "limit"
+                <> short 'n'
+                <> metavar "INT"
+                <> help "Maximum number of distinct datum values to print"
+                <> value 5
+            )
 
 getBlockfrostProject :: IO Project
 getBlockfrostProject =
@@ -107,9 +121,9 @@ parsePaymentCredential input =
         (prefix, _) ->
             Left $ "Unsupported target prefix: " <> prefix
   where
-    splitPrefix value = case break (== ':') value of
+    splitPrefix rawValue = case break (== ':') rawValue of
         (prefix, ':' : rest) -> (prefix, rest)
-        _ -> ("", value)
+        _ -> ("", rawValue)
 
 parseRawBytes :: C.SerialiseAsRawBytes a => C.AsType a -> String -> Either String a
 parseRawBytes asType hex =
@@ -118,8 +132,8 @@ parseRawBytes asType hex =
             asType
             (either error id $ Base16.decode $ Text.encodeUtf8 $ Text.pack hex)
 
-runCollector :: Project -> C.PaymentCredential -> IO [Text]
-runCollector project paymentCredential = do
+runCollector :: Project -> C.PaymentCredential -> Int -> IO [Text]
+runCollector project paymentCredential limit = do
     result <- evalBlockfrostT project (runExceptT collect)
     case result of
         Left err -> die (show err)
@@ -130,7 +144,7 @@ runCollector project paymentCredential = do
     collect = do
         C.UTxO utxos <- Utxos.toApiUtxo @C.ConwayEra <$> Chain.utxosByPaymentCredential paymentCredential
         let datumHexes =
-                take 5
+                take limit
                     . nub
                     . mapMaybe (txOutInlineDatumHex . snd)
                     $ Map.toList utxos

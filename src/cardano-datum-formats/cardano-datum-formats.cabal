@@ -68,6 +68,8 @@ library
     Cardano.Protocol.Liqwid.Common
     Cardano.Protocol.Liqwid.Loan
     Cardano.Protocol.Liqwid.Market
+    Cardano.Protocol.MuesliSwap.Order
+    Cardano.Protocol.MuesliSwap.Pool
     Cardano.Protocol.Pulse.Common
     Cardano.Protocol.Pulse.Market
     Cardano.Protocol.Pulse.MarketInfo
@@ -135,6 +137,7 @@ test-suite cardano-datum-formats-test
     Cardano.Protocol.Indigo.Test
     Cardano.Protocol.GeniusYield.Test
     Cardano.Protocol.Liqwid.Test
+    Cardano.Protocol.MuesliSwap.Test
     Cardano.Protocol.Pulse.Test
     Cardano.Protocol.Strike.Test
     Cardano.Protocol.Sundae.Test

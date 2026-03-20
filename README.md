@@ -13,6 +13,7 @@ Typed Haskell representations of Cardano protocol datums, plus tests against rou
 | Pulse | `MarketInfo`, `Market`, `Order`, `SYVault`, `Oracle`, `YTStake` | 🟢 |
 | Strike | `Order`, `Pool`, `Position`, `Settings` | 🟢 |
 | Liqwid | `Action`, `Loan`, `Market` | 🟠 |
+| MuesliSwap | Orders, pools | 🟢 |
 | VyFinance | Pools | 🟠 |
 | WingRiders | Pools | 🟢 |
 
