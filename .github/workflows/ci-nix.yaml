@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-library:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +31,7 @@ jobs:
           purge-created: 0
           purge-primary-key: never
 
-      - name: Build library in nix shell
+      - name: Build and test in nix shell
         run: |
-          nix develop --accept-flake-config .#ghc966 -c cabal build lib:cardano-datum-formats
+          nix develop --accept-flake-config .#ghc966 -c cabal build all
+          nix develop --accept-flake-config .#ghc966 -c cabal test cardano-datum-formats-test --test-show-details=direct

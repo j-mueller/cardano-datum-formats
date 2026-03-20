@@ -15,6 +15,22 @@ description:
 
 common lang
   default-language: Haskell2010
+  default-extensions:
+    DataKinds
+    DeriveFunctor
+    DerivingStrategies
+    ExplicitForAll
+    FlexibleContexts
+    GADTs
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    LambdaCase
+    NamedFieldPuns
+    NumericUnderscores
+    OverloadedStrings
+    ScopedTypeVariables
+    TypeApplications
+    ViewPatterns
   ghc-options:
     -Wall
     -Wcompat
@@ -28,17 +44,44 @@ library
   import: lang
   hs-source-dirs: lib
   exposed-modules:
-    Cardano.Datum.Formats
+    Cardano.Address.Plutus
+    Cardano.Asset
+    Cardano.Asset.Pair
+    Cardano.Data
+    Cardano.Protocol.MinSwap.Order
+    Cardano.Protocol.MinSwap.Pool
   build-depends:
-    base ^>=4.18.2.1
+    QuickCheck
+    , base ^>=4.18.2.1
+    , base16-bytestring
+    , bytestring
+    , cardano-api
+    , cardano-api-gen
+    , cardano-ledger-core
+    , convex-base
+    , convex-optics
+    , hedgehog-quickcheck
+    , lens
+    , plutus-core
+    , plutus-ledger-api
+    , plutus-tx
+    , text
 
 test-suite cardano-datum-formats-test
   import: lang
   type: exitcode-stdio-1.0
   hs-source-dirs: test
   main-is: Spec.hs
+  other-modules:
+    Cardano.Protocol.MinSwap.Test
+    Cardano.Test.Utils
   build-depends:
     base ^>=4.18.2.1
+    , base16-bytestring
     , cardano-datum-formats
+    , cardano-api
+    , plutus-tx
     , tasty
     , tasty-hunit
+    , tasty-quickcheck
+    , text
