@@ -19,6 +19,7 @@ common lang
     DataKinds
     DeriveFunctor
     DerivingStrategies
+    DuplicateRecordFields
     ExplicitForAll
     FlexibleContexts
     GADTs
@@ -44,12 +45,21 @@ library
   import: lang
   hs-source-dirs: lib
   exposed-modules:
+    Cardano.Address.Aiken
     Cardano.Address.Plutus
     Cardano.Asset
     Cardano.Asset.Pair
     Cardano.Data
+    Cardano.Transaction.OutputReference
     Cardano.Protocol.MinSwap.Order
     Cardano.Protocol.MinSwap.Pool
+    Cardano.Protocol.Pulse.Common
+    Cardano.Protocol.Pulse.Market
+    Cardano.Protocol.Pulse.MarketInfo
+    Cardano.Protocol.Pulse.Oracle
+    Cardano.Protocol.Pulse.Order
+    Cardano.Protocol.Pulse.SYVault
+    Cardano.Protocol.Pulse.YTStake
     Cardano.Protocol.Sundae.Order
     Cardano.Protocol.Sundae.Pool
     Cardano.Protocol.Sundae.V3.Order
@@ -99,6 +109,7 @@ test-suite cardano-datum-formats-test
   main-is: Spec.hs
   other-modules:
     Cardano.Protocol.MinSwap.Test
+    Cardano.Protocol.Pulse.Test
     Cardano.Protocol.Sundae.Test
     Cardano.Test.Utils
   build-depends:
