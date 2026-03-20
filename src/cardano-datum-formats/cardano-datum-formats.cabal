@@ -68,6 +68,7 @@ library
     Cardano.Protocol.Sundae.Pool
     Cardano.Protocol.Sundae.V3.Order
     Cardano.Protocol.Sundae.V3.Pool
+    Cardano.Protocol.WingRiders.Pool
   build-depends:
     QuickCheck
     , base ^>=4.18.2.1
@@ -116,6 +117,7 @@ test-suite cardano-datum-formats-test
     Cardano.Protocol.Liqwid.Test
     Cardano.Protocol.Pulse.Test
     Cardano.Protocol.Sundae.Test
+    Cardano.Protocol.WingRiders.Test
     Cardano.Test.Utils
   build-depends:
     base ^>=4.18.2.1
