@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Indigo.CDP (
     CDPDatum (..),
     CDPFees (..),
@@ -5,7 +7,14 @@ module Cardano.Protocol.Indigo.CDP (
 ) where
 
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions, stripFieldPrefix, sumOptionsWithFieldModifier)
 import Cardano.Protocol.Indigo.Common (arbitraryAnyBuiltinByteString, maybeFromOptionData, maybeToOptionData)
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
@@ -20,7 +29,7 @@ data CDPFees
         { cdpfLovelacesTreasury :: Integer
         , cdpfLovelacesIndyStakers :: Integer
         }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data CDPContent = CDPContent
     { ccCdpOwner :: Maybe PlutusTx.BuiltinByteString
@@ -28,12 +37,12 @@ data CDPContent = CDPContent
     , ccMintedAmt :: Integer
     , ccCdpFees :: CDPFees
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 newtype CDPDatum = CDPDatum
     { getCDPContent :: CDPContent
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary CDPFees where
     arbitrary =
@@ -127,3 +136,39 @@ newtype BytesAsData = BytesAsData { unBytesAsData :: PlutusTx.BuiltinByteString 
 
 instance PTx.ToData BytesAsData where
     toBuiltinData = PlutusTx.mkB . unBytesAsData
+
+instance ToJSON CDPFees where
+    toJSON = Aeson.genericToJSON (sumOptionsWithFieldModifier 0 (stripFieldPrefix "cdpf"))
+    toEncoding = Aeson.genericToEncoding (sumOptionsWithFieldModifier 0 (stripFieldPrefix "cdpf"))
+
+instance FromJSON CDPFees where
+    parseJSON = Aeson.genericParseJSON (sumOptionsWithFieldModifier 0 (stripFieldPrefix "cdpf"))
+
+$(deriveTypeScript (sumOptionsWithFieldModifier 0 (stripFieldPrefix "cdpf")) ''CDPFees)
+
+instance Schema.ToSchema CDPFees where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptionsWithFieldModifier 0 (stripFieldPrefix "cdpf")))
+
+instance ToJSON CDPContent where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON CDPContent where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''CDPContent)
+
+instance Schema.ToSchema CDPContent where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSON CDPDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON CDPDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''CDPDatum)
+
+instance Schema.ToSchema CDPDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))

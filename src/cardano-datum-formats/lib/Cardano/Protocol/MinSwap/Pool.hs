@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Cardano.Protocol.MinSwap.Pool (
     PoolFeeSharing (..),
@@ -15,6 +16,14 @@ import Cardano.Api qualified as C
 import Cardano.Asset qualified as Asset
 import Cardano.Asset.Pair (Pair, lpAssetName, pair)
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions, sumOptions)
+import Cardano.Protocol.JSON ()
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.Gen.Cardano.Api.Typed qualified as Gen
@@ -26,7 +35,7 @@ data PoolFeeSharing addr = PoolFeeSharing
     { pfTo :: addr
     , pfDatumHash :: C.Hash C.ScriptData
     }
-    deriving stock (Eq, Show, Functor)
+    deriving stock (Eq, Show, Functor, Generic)
 
 instance Arbitrary addr => Arbitrary (PoolFeeSharing addr) where
     arbitrary =
@@ -51,7 +60,7 @@ data PoolDatumV1 addr = PoolDatumV1
     , pd1RootKLast :: C.Quantity
     , pd1FeeSharing :: Maybe (PoolFeeSharing addr)
     }
-    deriving stock (Eq, Show, Functor)
+    deriving stock (Eq, Show, Functor, Generic)
 
 instance Arbitrary addr => Arbitrary (PoolDatumV1 addr) where
     arbitrary =
@@ -88,7 +97,7 @@ data BaseFee = BaseFee
     { bfANumerator :: C.Quantity
     , bfBNumerator :: C.Quantity
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary BaseFee where
     arbitrary =
@@ -106,7 +115,7 @@ instance PlutusTx.FromData BaseFee where
         _ -> Nothing
 
 data DynamicFee = AllowDynamicFee | DisallowDynamicFee
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary DynamicFee where
     arbitrary = Gen.elements [AllowDynamicFee, DisallowDynamicFee]
@@ -133,7 +142,7 @@ data PoolDatumV2 = PoolDatumV2
     , pd2FeeSharingNumerator :: Maybe C.Quantity
     , pd2AllowDynamicFee :: DynamicFee
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary PoolDatumV2 where
     arbitrary =
@@ -185,3 +194,63 @@ poolPair PoolDatumV2{pd2AssetA, pd2AssetB} =
 
 poolId :: PoolDatumV2 -> C.AssetName
 poolId = lpAssetName . poolPair
+
+instance ToJSON addr => ToJSON (PoolFeeSharing addr) where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON addr => FromJSON (PoolFeeSharing addr) where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''PoolFeeSharing)
+
+instance Schema.ToSchema addr => Schema.ToSchema (PoolFeeSharing addr) where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSON addr => ToJSON (PoolDatumV1 addr) where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON addr => FromJSON (PoolDatumV1 addr) where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''PoolDatumV1)
+
+instance Schema.ToSchema addr => Schema.ToSchema (PoolDatumV1 addr) where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
+
+instance ToJSON BaseFee where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON BaseFee where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''BaseFee)
+
+instance Schema.ToSchema BaseFee where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSON DynamicFee where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON DynamicFee where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''DynamicFee)
+
+instance Schema.ToSchema DynamicFee where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON PoolDatumV2 where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON PoolDatumV2 where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''PoolDatumV2)
+
+instance Schema.ToSchema PoolDatumV2 where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))

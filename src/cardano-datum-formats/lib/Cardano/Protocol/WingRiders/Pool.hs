@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Cardano.Protocol.WingRiders.Pool (
     FeeFrom (..),
@@ -6,8 +7,15 @@ module Cardano.Protocol.WingRiders.Pool (
 ) where
 
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions, sumOptions)
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
 import Data.ByteString qualified as BS
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
 import Data.Word (Word8)
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck qualified as QC
@@ -18,7 +26,7 @@ data FeeFrom
     | OutputToken
     | TokenA
     | TokenB
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary FeeFrom where
     arbitrary = do
@@ -61,7 +69,7 @@ data WingRidersPoolDatum = WingRidersPoolDatum
     , wrpdFeeBasis :: Integer
     , wrpdSharesAssetName :: PlutusTx.BuiltinByteString
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary WingRidersPoolDatum where
     arbitrary =
@@ -167,3 +175,27 @@ instance PTx.FromData WingRidersPoolDatum where
                         , wrpdSharesAssetName
                         }
         _ -> Nothing
+
+instance ToJSON FeeFrom where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON FeeFrom where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''FeeFrom)
+
+instance Schema.ToSchema FeeFrom where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON WingRidersPoolDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 4)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 4)
+
+instance FromJSON WingRidersPoolDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 4)
+
+$(deriveTypeScript (jsonOptions 4) ''WingRidersPoolDatum)
+
+instance Schema.ToSchema WingRidersPoolDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 4))

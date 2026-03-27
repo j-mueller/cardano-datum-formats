@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.GeniusYield.PartialOrder (
     PartialOrderConfigDatum (..),
     PartialOrderContainedFee (..),
@@ -6,6 +8,7 @@ module Cardano.Protocol.GeniusYield.PartialOrder (
 ) where
 
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions)
 import Cardano.Protocol.GeniusYield.Common (
     Address,
     AssetClass,
@@ -19,6 +22,12 @@ import Cardano.Protocol.GeniusYield.Common (
 import Data.ByteString qualified as BS
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
@@ -34,21 +43,21 @@ data PartialOrderConfigDatum = PartialOrderConfigDatum
     , pocdTakerFee :: Integer
     , pocdMinDeposit :: Integer
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data PartialOrderContainedFee = PartialOrderContainedFee
     { pocfLovelaces :: Integer
     , pocfOfferedTokens :: Integer
     , pocfAskedTokens :: Integer
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data PartialOrderFeeOutput = PartialOrderFeeOutput
     { pofdMentionedFees :: Map OutputReference Value
     , pofdReservedValue :: Value
     , pofdSpentUTxORef :: Maybe OutputReference
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data PartialOrderDatum = PartialOrderDatum
     { podOwnerKey :: PlutusTx.BuiltinByteString
@@ -67,7 +76,7 @@ data PartialOrderDatum = PartialOrderDatum
     , podContainedFee :: PartialOrderContainedFee
     , podContainedPayment :: Integer
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary PartialOrderConfigDatum where
     arbitrary =
@@ -286,3 +295,51 @@ fromList dt =
 arbitraryBuiltinByteString :: Int -> Gen.Gen PlutusTx.BuiltinByteString
 arbitraryBuiltinByteString size =
     PlutusTx.toBuiltin . BS.pack <$> Gen.vectorOf size arbitrary
+
+instance ToJSON PartialOrderConfigDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 4)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 4)
+
+instance FromJSON PartialOrderConfigDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 4)
+
+$(deriveTypeScript (jsonOptions 4) ''PartialOrderConfigDatum)
+
+instance Schema.ToSchema PartialOrderConfigDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 4))
+
+instance ToJSON PartialOrderContainedFee where
+    toJSON = Aeson.genericToJSON (jsonOptions 4)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 4)
+
+instance FromJSON PartialOrderContainedFee where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 4)
+
+$(deriveTypeScript (jsonOptions 4) ''PartialOrderContainedFee)
+
+instance Schema.ToSchema PartialOrderContainedFee where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 4))
+
+instance ToJSON PartialOrderFeeOutput where
+    toJSON = Aeson.genericToJSON (jsonOptions 4)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 4)
+
+instance FromJSON PartialOrderFeeOutput where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 4)
+
+$(deriveTypeScript (jsonOptions 4) ''PartialOrderFeeOutput)
+
+instance Schema.ToSchema PartialOrderFeeOutput where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 4))
+
+instance ToJSON PartialOrderDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON PartialOrderDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''PartialOrderDatum)
+
+instance Schema.ToSchema PartialOrderDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))

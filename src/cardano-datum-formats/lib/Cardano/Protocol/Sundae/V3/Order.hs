@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Sundae.V3.Order (
     SundaeOrderDatum (..),
     MultisigScript (..),
@@ -13,8 +15,21 @@ module Cardano.Protocol.Sundae.V3.Order (
 
 import Cardano.Api qualified as C
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (
+    jsonOptions,
+    stripFieldPrefix,
+    sumOptions,
+    sumOptionsWithFieldModifier,
+ )
+import Cardano.Protocol.JSON ()
 import Control.Monad ((>=>))
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
 import Data.ByteString qualified as BS
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.Gen.Cardano.Api.Typed qualified as Gen
@@ -31,7 +46,7 @@ data MultisigScript
     | Before Integer
     | After Integer
     | Script C.ScriptHash
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary MultisigScript where
     arbitrary = QC.sized go
@@ -83,7 +98,7 @@ instance PlutusTx.FromData MultisigScript where
 data Credential
     = VerificationKeyCredential (C.Hash C.PaymentKey)
     | ScriptCredential C.ScriptHash
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary Credential where
     arbitrary =
@@ -110,7 +125,7 @@ data StakingCredential
         , pointerTransactionIndex :: Integer
         , pointerCertificateIndex :: Integer
         }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary StakingCredential where
     arbitrary =
@@ -141,7 +156,7 @@ data SundaeAddress = SundaeAddress
     { saPaymentCredential :: Credential
     , saStakeCredential :: Maybe StakingCredential
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary SundaeAddress where
     arbitrary =
@@ -167,7 +182,7 @@ data SundaeDatum
     = NoDatum
     | DatumHash (C.Hash C.ScriptData)
     | InlineDatum PlutusTx.BuiltinData
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary SundaeDatum where
     arbitrary =
@@ -193,7 +208,7 @@ instance PlutusTx.FromData SundaeDatum where
 data Destination
     = FixedDestination SundaeAddress SundaeDatum
     | SelfDestination
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary Destination where
     arbitrary =
@@ -224,7 +239,7 @@ instance PlutusTx.FromData Destination where
 data StrategyAuthorization
     = StrategySignature (C.Hash C.PaymentKey)
     | StrategyScript PlutusTx.BuiltinByteString
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary StrategyAuthorization where
     arbitrary =
@@ -248,7 +263,7 @@ data AssetAmount = AssetAmount
     { aaAssetId :: C.AssetId
     , aaAmount :: C.Quantity
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary AssetAmount where
     arbitrary =
@@ -274,7 +289,7 @@ data Order
     | Withdrawal AssetAmount
     | Donation AssetAmount AssetAmount
     | Record C.AssetId
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary Order where
     arbitrary =
@@ -344,7 +359,7 @@ data SundaeOrderDatum = SundaeOrderDatum
     , soDetails :: Order
     , soExtension :: PlutusTx.BuiltinByteString
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary SundaeOrderDatum where
     arbitrary =
@@ -405,3 +420,127 @@ withList dt match =
         match
         (const Nothing)
         (const Nothing)
+
+instance ToJSON MultisigScript where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON MultisigScript where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''MultisigScript)
+
+instance Schema.ToSchema MultisigScript where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON Credential where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON Credential where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''Credential)
+
+instance Schema.ToSchema Credential where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+sundaeStakingCredentialOptions :: Aeson.Options
+sundaeStakingCredentialOptions =
+    sumOptionsWithFieldModifier 0 (stripFieldPrefix "pointer")
+
+instance ToJSON StakingCredential where
+    toJSON = Aeson.genericToJSON sundaeStakingCredentialOptions
+    toEncoding = Aeson.genericToEncoding sundaeStakingCredentialOptions
+
+instance FromJSON StakingCredential where
+    parseJSON = Aeson.genericParseJSON sundaeStakingCredentialOptions
+
+$(deriveTypeScript (sumOptionsWithFieldModifier 0 (stripFieldPrefix "pointer")) ''StakingCredential)
+
+instance Schema.ToSchema StakingCredential where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions sundaeStakingCredentialOptions)
+
+instance ToJSON SundaeAddress where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON SundaeAddress where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''SundaeAddress)
+
+instance Schema.ToSchema SundaeAddress where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSON SundaeDatum where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON SundaeDatum where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''SundaeDatum)
+
+instance Schema.ToSchema SundaeDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON Destination where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON Destination where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''Destination)
+
+instance Schema.ToSchema Destination where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON StrategyAuthorization where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON StrategyAuthorization where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''StrategyAuthorization)
+
+instance Schema.ToSchema StrategyAuthorization where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON AssetAmount where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON AssetAmount where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''AssetAmount)
+
+instance Schema.ToSchema AssetAmount where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSON Order where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON Order where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''Order)
+
+instance Schema.ToSchema Order where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON SundaeOrderDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON SundaeOrderDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''SundaeOrderDatum)
+
+instance Schema.ToSchema SundaeOrderDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))

@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.GeniusYield.Common (
     Address (..),
     AssetClass (..),
@@ -14,9 +16,21 @@ module Cardano.Protocol.GeniusYield.Common (
 ) where
 
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions, stripFieldPrefix, sumOptions, sumOptionsWithFieldModifier)
+import Cardano.Protocol.JSON ()
+import Data.Aeson (FromJSON (..), FromJSONKey (..), ToJSON (..), ToJSONKey (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.Types qualified as Aeson
+import Data.ByteString.Base16 qualified as Base16
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
 import Data.ByteString qualified as BS
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
+import Data.Text qualified as T
+import Data.Text.Encoding qualified as TE
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck qualified as QC
@@ -27,12 +41,12 @@ data OutputReference = OutputReference
     { orTransactionId :: PlutusTx.BuiltinByteString
     , orOutputIndex :: Integer
     }
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 data Credential
     = PublicKeyCredential PlutusTx.BuiltinByteString
     | ScriptCredential PlutusTx.BuiltinByteString
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 data StakeCredential
     = Inline Credential
@@ -41,30 +55,30 @@ data StakeCredential
         , pointerTransactionIndex :: Integer
         , pointerCertificateIndex :: Integer
         }
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 data Address = Address
     { addressPaymentCredential :: Credential
     , addressStakeCredential :: Maybe StakeCredential
     }
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 data RationalD = RationalD
     { rNumerator :: Integer
     , rDenominator :: Integer
     }
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 data AssetClass = AssetClass
     { acSymbol :: PlutusTx.BuiltinByteString
     , acName :: PlutusTx.BuiltinByteString
     }
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 newtype Value = Value
     { getValue :: Map PlutusTx.BuiltinByteString (Map PlutusTx.BuiltinByteString Integer)
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary OutputReference where
     arbitrary = OutputReference <$> arbitraryBuiltinByteString 32 <*> arbitrary
@@ -248,3 +262,105 @@ maybeFromOptionData decode dt = D.withConstr dt $ \case
     (0, [value]) -> Just <$> decode value
     (1, []) -> Just Nothing
     _ -> Nothing
+
+instance ToJSON OutputReference where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON OutputReference where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''OutputReference)
+
+instance Schema.ToSchema OutputReference where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSONKey OutputReference where
+    toJSONKey =
+        Aeson.toJSONKeyText $ \OutputReference{orTransactionId, orOutputIndex} ->
+            TE.decodeUtf8 (Base16.encode (PlutusTx.fromBuiltin orTransactionId)) <> ":" <> T.pack (show orOutputIndex)
+
+instance FromJSONKey OutputReference where
+    fromJSONKey = Aeson.FromJSONKeyTextParser $ \text ->
+        case T.breakOn ":" text of
+            (txIdText, outputIndexText)
+                | T.null outputIndexText -> fail "unsupported OutputReference key format"
+                | otherwise ->
+                    OutputReference
+                        <$> parseJSONKey txIdText
+                        <*> parseJSONKey (T.drop 1 outputIndexText)
+      where
+        parseJSONKey :: FromJSON a => T.Text -> Aeson.Parser a
+        parseJSONKey = Aeson.parseJSON . Aeson.String
+
+instance ToJSON Credential where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON Credential where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''Credential)
+
+instance Schema.ToSchema Credential where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON StakeCredential where
+    toJSON = Aeson.genericToJSON (sumOptionsWithFieldModifier 0 (stripFieldPrefix "pointer"))
+    toEncoding = Aeson.genericToEncoding (sumOptionsWithFieldModifier 0 (stripFieldPrefix "pointer"))
+
+instance FromJSON StakeCredential where
+    parseJSON = Aeson.genericParseJSON (sumOptionsWithFieldModifier 0 (stripFieldPrefix "pointer"))
+
+$(deriveTypeScript (sumOptionsWithFieldModifier 0 (stripFieldPrefix "pointer")) ''StakeCredential)
+
+instance Schema.ToSchema StakeCredential where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptionsWithFieldModifier 0 (stripFieldPrefix "pointer")))
+
+instance ToJSON Address where
+    toJSON = Aeson.genericToJSON Aeson.defaultOptions
+    toEncoding = Aeson.genericToEncoding Aeson.defaultOptions
+
+instance FromJSON Address where
+    parseJSON = Aeson.genericParseJSON Aeson.defaultOptions
+
+$(deriveTypeScript Aeson.defaultOptions ''Address)
+
+instance Schema.ToSchema Address where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions Aeson.defaultOptions)
+
+instance ToJSON RationalD where
+    toJSON = Aeson.genericToJSON Aeson.defaultOptions
+    toEncoding = Aeson.genericToEncoding Aeson.defaultOptions
+
+instance FromJSON RationalD where
+    parseJSON = Aeson.genericParseJSON Aeson.defaultOptions
+
+$(deriveTypeScript Aeson.defaultOptions ''RationalD)
+
+instance Schema.ToSchema RationalD where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions Aeson.defaultOptions)
+
+instance ToJSON AssetClass where
+    toJSON = Aeson.genericToJSON Aeson.defaultOptions
+    toEncoding = Aeson.genericToEncoding Aeson.defaultOptions
+
+instance FromJSON AssetClass where
+    parseJSON = Aeson.genericParseJSON Aeson.defaultOptions
+
+$(deriveTypeScript Aeson.defaultOptions ''AssetClass)
+
+instance Schema.ToSchema AssetClass where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions Aeson.defaultOptions)
+
+instance ToJSON Value where
+    toJSON = Aeson.genericToJSON Aeson.defaultOptions
+    toEncoding = Aeson.genericToEncoding Aeson.defaultOptions
+
+instance FromJSON Value where
+    parseJSON = Aeson.genericParseJSON Aeson.defaultOptions
+
+$(deriveTypeScript Aeson.defaultOptions ''Value)
+
+instance Schema.ToSchema Value where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions Aeson.defaultOptions)

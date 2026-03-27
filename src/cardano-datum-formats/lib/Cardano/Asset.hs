@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Asset (
     Asset (..),
     fromAssetId,
@@ -6,7 +8,14 @@ module Cardano.Asset (
 
 import Cardano.Api qualified as C
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON ()
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
 import Data.ByteString qualified as BS
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.Gen.Cardano.Api.Typed qualified as Gen
@@ -17,7 +26,7 @@ data Asset = Asset
     { aPolicyId :: PlutusTx.BuiltinByteString
     , aTokenName :: PlutusTx.BuiltinByteString
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance PlutusTx.ToData Asset where
     toBuiltinData Asset{aPolicyId, aTokenName} =
@@ -46,3 +55,15 @@ toAssetId Asset{aPolicyId, aTokenName}
 
 instance Arbitrary Asset where
     arbitrary = fromAssetId <$> H.hedgehog Gen.genAssetId
+
+instance ToJSON Asset where
+    toJSON = Aeson.genericToJSON Aeson.defaultOptions
+    toEncoding = Aeson.genericToEncoding Aeson.defaultOptions
+
+instance FromJSON Asset where
+    parseJSON = Aeson.genericParseJSON Aeson.defaultOptions
+
+$(deriveTypeScript Aeson.defaultOptions ''Asset)
+
+instance Schema.ToSchema Asset where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions Aeson.defaultOptions)

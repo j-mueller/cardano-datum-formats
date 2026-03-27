@@ -1,9 +1,13 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Pulse.Order (
     OrderDatum (..),
 ) where
 
 import Cardano.Address.Aiken (AikenAddress)
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (stripFieldPrefix, sumOptionsWithFieldModifier)
+import Cardano.Protocol.JSON ()
 import Cardano.Protocol.Pulse.Common (
     PubKeyHash,
     maybeFromOptionData,
@@ -12,6 +16,12 @@ import Cardano.Protocol.Pulse.Common (
     maybeToOptionRawData,
  )
 import Cardano.Transaction.OutputReference (OutputReference)
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck qualified as QC
@@ -79,7 +89,7 @@ data OrderDatum
         { oOwnerPkh :: PubKeyHash
         , oMaybeStakeId :: Maybe OutputReference
         }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary OrderDatum where
     arbitrary =
@@ -252,3 +262,19 @@ arbitraryMaybeData =
         [ pure Nothing
         , Just <$> Gen.elements [PlutusTx.mkConstr 0 [], PlutusTx.mkI 0]
         ]
+
+pulseOrderDatumOptions :: Aeson.Options
+pulseOrderDatumOptions =
+    sumOptionsWithFieldModifier 0 (stripFieldPrefix "o")
+
+instance ToJSON OrderDatum where
+    toJSON = Aeson.genericToJSON pulseOrderDatumOptions
+    toEncoding = Aeson.genericToEncoding pulseOrderDatumOptions
+
+instance FromJSON OrderDatum where
+    parseJSON = Aeson.genericParseJSON pulseOrderDatumOptions
+
+$(deriveTypeScript (sumOptionsWithFieldModifier 0 (stripFieldPrefix "o")) ''OrderDatum)
+
+instance Schema.ToSchema OrderDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions pulseOrderDatumOptions)

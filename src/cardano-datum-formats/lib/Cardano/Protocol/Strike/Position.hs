@@ -1,9 +1,13 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Strike.Position (
     PositionDatum (..),
 ) where
 
 import Cardano.Asset (Asset)
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions)
+import Cardano.Protocol.JSON ()
 import Cardano.Protocol.Strike.Common (
     AddressHash,
     PositionSide,
@@ -14,6 +18,12 @@ import Cardano.Protocol.Strike.Common (
  )
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
 
 data PositionDatum = PositionDatum
@@ -32,7 +42,7 @@ data PositionDatum = PositionDatum
     , pdPositionAssetAmount :: Integer
     , pdSide :: PositionSide
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary PositionDatum where
     arbitrary =
@@ -121,3 +131,15 @@ instance PTx.FromData PositionDatum where
                     <*> pure pdPositionAssetAmount
                     <*> PTx.fromBuiltinData side
         _ -> Nothing
+
+instance ToJSON PositionDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON PositionDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''PositionDatum)
+
+instance Schema.ToSchema PositionDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))

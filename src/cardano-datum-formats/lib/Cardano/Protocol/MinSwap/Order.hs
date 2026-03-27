@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Cardano.Protocol.MinSwap.Order (
     MinSwapV2Order (..),
@@ -24,8 +25,21 @@ import Cardano.Asset qualified as Asset
 import Cardano.Asset.Pair (Pair)
 import Cardano.Asset.Pair qualified as Pair
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (
+    jsonOptions,
+    stripFieldPrefix,
+    stripFieldPrefixes,
+    sumOptions,
+ )
+import Cardano.Protocol.JSON ()
 import Control.Monad ((>=>))
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (TypeScript (..), deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
 import Data.Text (Text)
+import GHC.Generics (Generic)
 import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.Gen.Cardano.Api.Typed qualified as Gen
@@ -38,7 +52,7 @@ data AuthorizationMethod
     | SpendScript C.ScriptHash
     | WithdrawScript C.ScriptHash
     | MintScript C.ScriptHash
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 instance PlutusTx.ToData AuthorizationMethod where
     toBuiltinData = \case
@@ -68,7 +82,7 @@ data ExtraDatum
     = NoDatum
     | DatumHash (C.Hash C.ScriptData)
     | InlineDatum (C.Hash C.ScriptData)
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 instance Arbitrary ExtraDatum where
     arbitrary =
@@ -95,7 +109,7 @@ instance PlutusTx.FromData ExtraDatum where
 data Direction
     = BtoA
     | AtoB
-    deriving stock (Eq, Ord, Show, Enum)
+    deriving stock (Eq, Ord, Show, Enum, Generic)
 
 invert :: Direction -> Direction
 invert BtoA = AtoB
@@ -124,7 +138,7 @@ instance PlutusTx.FromData Direction where
 data Killable
     = PendingOnFailed
     | KillOnFailed
-    deriving stock (Eq, Ord, Show, Enum)
+    deriving stock (Eq, Ord, Show, Enum, Generic)
 
 instance Arbitrary Killable where
     arbitrary = Gen.elements [PendingOnFailed, KillOnFailed]
@@ -143,7 +157,7 @@ instance PlutusTx.FromData Killable where
 data DepositAmount
     = DepositSpecificAmount {depositAmountA :: C.Quantity, depositAmountB :: C.Quantity}
     | DepositAll {deductedAmountA :: C.Quantity, deductedAmountB :: C.Quantity}
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 instance Arbitrary DepositAmount where
     arbitrary =
@@ -167,7 +181,7 @@ instance PlutusTx.FromData DepositAmount where
 data SwapAmount
     = SwapSpecificAmount {swapAmount :: C.Quantity}
     | SwapAll {deductedSwapAmount :: C.Quantity}
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 instance Arbitrary SwapAmount where
     arbitrary =
@@ -191,7 +205,7 @@ instance PlutusTx.FromData SwapAmount where
 data WithdrawAmount
     = WithdrawAmount {withdrawalLPAmount :: C.Quantity}
     | WithdrawAll {deductedLPAmount :: C.Quantity}
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 instance Arbitrary WithdrawAmount where
     arbitrary =
@@ -216,7 +230,7 @@ data Route = Route
     { rLpAsset :: C.AssetId
     , rDirection :: Direction
     }
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 instance Arbitrary Route where
     arbitrary =
@@ -248,7 +262,7 @@ data Step
     | WithdrawImbalance WithdrawAmount C.Quantity C.Quantity C.Quantity Killable
     | SwapRouting [Route] SwapAmount C.Quantity
     | Donation
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 classifyStep :: Step -> Text
 classifyStep = \case
@@ -361,7 +375,7 @@ data ExpirySetting = ExpirySetting
     { esExpiredTime :: !Integer
     , esMaxCancellationTip :: C.Quantity
     }
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic)
 
 instance Arbitrary ExpirySetting where
     arbitrary = ExpirySetting <$> arbitrary <*> H.hedgehog Gen.genSignedNonZeroQuantity
@@ -387,7 +401,7 @@ data MinSwapV2Order addr = MinSwapV2Order
     , msMaxBatcherFee :: C.Quantity
     , msExpiredOptions :: Maybe ExpirySetting
     }
-    deriving stock (Eq, Ord, Show, Functor)
+    deriving stock (Eq, Ord, Show, Functor, Generic)
 
 instance Arbitrary addr => Arbitrary (MinSwapV2Order addr) where
     arbitrary =
@@ -431,3 +445,166 @@ instance PlutusTx.FromData addr => PlutusTx.FromData (MinSwapV2Order addr) where
                 <*> fmap C.Quantity (PlutusTx.fromBuiltinData maxBatcherFee)
                 <*> PlutusTx.fromBuiltinData expiredOptions
         _ -> Nothing
+
+instance ToJSON AuthorizationMethod where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON AuthorizationMethod where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''AuthorizationMethod)
+
+instance Schema.ToSchema AuthorizationMethod where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON ExtraDatum where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON ExtraDatum where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''ExtraDatum)
+
+instance Schema.ToSchema ExtraDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+directionOptions :: Aeson.Options
+directionOptions =
+    (sumOptions 0)
+        { Aeson.constructorTagModifier = \case
+            "BtoA" -> "b_to_a"
+            "AtoB" -> "a_to_b"
+            other -> Aeson.camelTo2 '_' other
+        }
+
+instance ToJSON Direction where
+    toJSON = Aeson.genericToJSON directionOptions
+    toEncoding = Aeson.genericToEncoding directionOptions
+
+instance FromJSON Direction where
+    parseJSON = Aeson.genericParseJSON directionOptions
+
+$(deriveTypeScript ((sumOptions 0){Aeson.constructorTagModifier = \case
+    "BtoA" -> "b_to_a"
+    "AtoB" -> "a_to_b"
+    other -> Aeson.camelTo2 '_' other}) ''Direction)
+
+instance Schema.ToSchema Direction where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions directionOptions)
+
+instance ToJSON Killable where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON Killable where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''Killable)
+
+instance Schema.ToSchema Killable where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+depositAmountOptions :: Aeson.Options
+depositAmountOptions =
+    (sumOptions 0)
+        { Aeson.fieldLabelModifier = stripFieldPrefixes ["depositAmount", "deductedAmount"]
+        }
+
+instance ToJSON DepositAmount where
+    toJSON = Aeson.genericToJSON depositAmountOptions
+    toEncoding = Aeson.genericToEncoding depositAmountOptions
+
+instance FromJSON DepositAmount where
+    parseJSON = Aeson.genericParseJSON depositAmountOptions
+
+$(deriveTypeScript ((sumOptions 0){Aeson.fieldLabelModifier = stripFieldPrefixes ["depositAmount", "deductedAmount"]}) ''DepositAmount)
+
+instance Schema.ToSchema DepositAmount where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions depositAmountOptions)
+
+swapAmountOptions :: Aeson.Options
+swapAmountOptions =
+    (sumOptions 0)
+        { Aeson.fieldLabelModifier = stripFieldPrefixes ["swap", "deductedSwap"]
+        }
+
+instance ToJSON SwapAmount where
+    toJSON = Aeson.genericToJSON swapAmountOptions
+    toEncoding = Aeson.genericToEncoding swapAmountOptions
+
+instance FromJSON SwapAmount where
+    parseJSON = Aeson.genericParseJSON swapAmountOptions
+
+$(deriveTypeScript ((sumOptions 0){Aeson.fieldLabelModifier = stripFieldPrefixes ["swap", "deductedSwap"]}) ''SwapAmount)
+
+instance Schema.ToSchema SwapAmount where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions swapAmountOptions)
+
+withdrawAmountOptions :: Aeson.Options
+withdrawAmountOptions =
+    (sumOptions 0)
+        { Aeson.fieldLabelModifier = stripFieldPrefixes ["withdrawalLP", "deductedLP"]
+        }
+
+instance ToJSON WithdrawAmount where
+    toJSON = Aeson.genericToJSON withdrawAmountOptions
+    toEncoding = Aeson.genericToEncoding withdrawAmountOptions
+
+instance FromJSON WithdrawAmount where
+    parseJSON = Aeson.genericParseJSON withdrawAmountOptions
+
+$(deriveTypeScript ((sumOptions 0){Aeson.fieldLabelModifier = stripFieldPrefixes ["withdrawalLP", "deductedLP"]}) ''WithdrawAmount)
+
+instance Schema.ToSchema WithdrawAmount where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions withdrawAmountOptions)
+
+instance ToJSON Route where
+    toJSON = Aeson.genericToJSON (jsonOptions 1)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 1)
+
+instance FromJSON Route where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 1)
+
+$(deriveTypeScript (jsonOptions 1) ''Route)
+
+instance Schema.ToSchema Route where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 1))
+
+instance ToJSON Step where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON Step where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+instance TypeScript Step where
+    getTypeScriptType _ = "any"
+
+instance Schema.ToSchema Step where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON ExpirySetting where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON ExpirySetting where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''ExpirySetting)
+
+instance Schema.ToSchema ExpirySetting where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSON addr => ToJSON (MinSwapV2Order addr) where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON addr => FromJSON (MinSwapV2Order addr) where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''MinSwapV2Order)
+
+instance Schema.ToSchema addr => Schema.ToSchema (MinSwapV2Order addr) where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))

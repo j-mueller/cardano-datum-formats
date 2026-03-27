@@ -1,10 +1,19 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Indigo.Gov (
     GovDatum (..),
     ProtocolParams (..),
 ) where
 
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions)
 import Cardano.Protocol.Indigo.Common (OnChainDecimal)
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
@@ -21,7 +30,7 @@ data ProtocolParams = ProtocolParams
     , ppMaxTreasuryLovelaceSpend :: Integer
     , ppMaxTreasuryIndySpend :: Integer
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data GovDatum = GovDatum
     { gdCurrentProposal :: Integer
@@ -31,7 +40,7 @@ data GovDatum = GovDatum
     , gdActiveProposals :: Integer
     , gdTreasuryIndyWithdrawnAmt :: Integer
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary ProtocolParams where
     arbitrary =
@@ -112,3 +121,27 @@ instance PTx.FromData GovDatum where
                 <*> pure gdActiveProposals
                 <*> pure gdTreasuryIndyWithdrawnAmt
         _ -> Nothing
+
+instance ToJSON ProtocolParams where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON ProtocolParams where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''ProtocolParams)
+
+instance Schema.ToSchema ProtocolParams where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSON GovDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON GovDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''GovDatum)
+
+instance Schema.ToSchema GovDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
