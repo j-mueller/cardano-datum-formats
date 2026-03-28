@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.MuesliSwap.Order (
     OrderStep (..),
     OrderDatum (..),
@@ -8,8 +10,16 @@ import Cardano.Address.Plutus (PlutusAddress)
 import Cardano.Api qualified as C
 import Cardano.Asset (Asset)
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions, stripFieldPrefixes, sumOptionsWithFieldModifier)
+import Cardano.Protocol.JSON ()
 import Control.Monad ((>=>))
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
 import Data.ByteString qualified as BS
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.Gen.Cardano.Api.Typed qualified as Gen
@@ -30,7 +40,7 @@ data OrderStep
         { osdDesiredCoin :: Asset
         , osdMinimumLP :: Integer
         }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data OrderDatum = OrderDatum
     { odSender :: PlutusAddress
@@ -42,7 +52,7 @@ data OrderDatum = OrderDatum
     , odPoolNftTokenName :: PlutusTx.BuiltinByteString
     , odScriptVersion :: PlutusTx.BuiltinByteString
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 scriptVersion :: PlutusTx.BuiltinByteString
 scriptVersion = "MuesliSwap_AMM"
@@ -143,3 +153,31 @@ arbitraryAnyBuiltinByteString :: QC.Gen PlutusTx.BuiltinByteString
 arbitraryAnyBuiltinByteString = do
     size <- Gen.chooseInt (0, 64)
     PlutusTx.toBuiltin . BS.pack <$> Gen.vectorOf size arbitrary
+
+muesliOrderStepOptions :: Aeson.Options
+muesliOrderStepOptions =
+    sumOptionsWithFieldModifier 0 (stripFieldPrefixes ["d", "w", "osd"])
+
+instance ToJSON OrderStep where
+    toJSON = Aeson.genericToJSON muesliOrderStepOptions
+    toEncoding = Aeson.genericToEncoding muesliOrderStepOptions
+
+instance FromJSON OrderStep where
+    parseJSON = Aeson.genericParseJSON muesliOrderStepOptions
+
+$(deriveTypeScript (sumOptionsWithFieldModifier 0 (stripFieldPrefixes ["d", "w", "osd"])) ''OrderStep)
+
+instance Schema.ToSchema OrderStep where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions muesliOrderStepOptions)
+
+instance ToJSON OrderDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON OrderDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''OrderDatum)
+
+instance Schema.ToSchema OrderDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))

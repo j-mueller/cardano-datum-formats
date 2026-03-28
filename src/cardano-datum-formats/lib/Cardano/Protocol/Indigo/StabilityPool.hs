@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Indigo.StabilityPool (
     AccountAction (..),
     AccountContent (..),
@@ -8,6 +10,7 @@ module Cardano.Protocol.Indigo.StabilityPool (
 ) where
 
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions, stripFieldPrefix, sumOptionsWithFieldModifier)
 import Cardano.Protocol.Indigo.Common (
     Address,
     EpochToScaleKey,
@@ -19,6 +22,12 @@ import Cardano.Protocol.Indigo.Common (
  )
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
@@ -31,14 +40,14 @@ data StabilityPoolSnapshot = StabilityPoolSnapshot
     , spsEpoch :: Integer
     , spsScale :: Integer
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data StabilityPoolContent = StabilityPoolContent
     { spcAsset :: PlutusTx.BuiltinByteString
     , spcSnapshot :: StabilityPoolSnapshot
     , spcEpochToScaleToSum :: Map EpochToScaleKey SPInteger
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data AccountAction
     = Create
@@ -49,7 +58,7 @@ data AccountAction
     | Close
         { aaOutputAddress :: Address
         }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data AccountContent = AccountContent
     { acOwner :: PlutusTx.BuiltinByteString
@@ -57,13 +66,13 @@ data AccountContent = AccountContent
     , acSnapshot :: StabilityPoolSnapshot
     , acRequest :: Maybe AccountAction
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data SnapshotEpochToScaleToSumContent = SnapshotEpochToScaleToSumContent
     { sesAsset :: PlutusTx.BuiltinByteString
     , sesSnapshot :: Map EpochToScaleKey SPInteger
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data StabilityPoolDatum
     = StabilityPool
@@ -75,7 +84,7 @@ data StabilityPoolDatum
     | SnapshotEpochToScaleToSum
         { spdSnapshotContent :: SnapshotEpochToScaleToSumContent
         }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary StabilityPoolSnapshot where
     arbitrary =
@@ -324,3 +333,75 @@ snapshotContentFromVariantData dt = D.withConstr dt $ \case
             <$> pure sesAsset
             <*> pure (Map.fromList decodedEntries)
     _ -> Nothing
+
+instance ToJSON StabilityPoolSnapshot where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON StabilityPoolSnapshot where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''StabilityPoolSnapshot)
+
+instance Schema.ToSchema StabilityPoolSnapshot where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
+
+instance ToJSON StabilityPoolContent where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON StabilityPoolContent where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''StabilityPoolContent)
+
+instance Schema.ToSchema StabilityPoolContent where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
+
+instance ToJSON AccountAction where
+    toJSON = Aeson.genericToJSON (sumOptionsWithFieldModifier 0 (stripFieldPrefix "aa"))
+    toEncoding = Aeson.genericToEncoding (sumOptionsWithFieldModifier 0 (stripFieldPrefix "aa"))
+
+instance FromJSON AccountAction where
+    parseJSON = Aeson.genericParseJSON (sumOptionsWithFieldModifier 0 (stripFieldPrefix "aa"))
+
+$(deriveTypeScript (sumOptionsWithFieldModifier 0 (stripFieldPrefix "aa")) ''AccountAction)
+
+instance Schema.ToSchema AccountAction where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptionsWithFieldModifier 0 (stripFieldPrefix "aa")))
+
+instance ToJSON AccountContent where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON AccountContent where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''AccountContent)
+
+instance Schema.ToSchema AccountContent where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSON SnapshotEpochToScaleToSumContent where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON SnapshotEpochToScaleToSumContent where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''SnapshotEpochToScaleToSumContent)
+
+instance Schema.ToSchema SnapshotEpochToScaleToSumContent where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
+
+instance ToJSON StabilityPoolDatum where
+    toJSON = Aeson.genericToJSON (sumOptionsWithFieldModifier 0 (stripFieldPrefix "spd"))
+    toEncoding = Aeson.genericToEncoding (sumOptionsWithFieldModifier 0 (stripFieldPrefix "spd"))
+
+instance FromJSON StabilityPoolDatum where
+    parseJSON = Aeson.genericParseJSON (sumOptionsWithFieldModifier 0 (stripFieldPrefix "spd"))
+
+$(deriveTypeScript (sumOptionsWithFieldModifier 0 (stripFieldPrefix "spd")) ''StabilityPoolDatum)
+
+instance Schema.ToSchema StabilityPoolDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptionsWithFieldModifier 0 (stripFieldPrefix "spd")))

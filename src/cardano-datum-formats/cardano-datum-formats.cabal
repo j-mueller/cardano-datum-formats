@@ -17,6 +17,7 @@ common lang
   default-language: Haskell2010
   default-extensions:
     DataKinds
+    DeriveGeneric
     DeriveFunctor
     DerivingStrategies
     DuplicateRecordFields
@@ -24,6 +25,7 @@ common lang
     FlexibleContexts
     GADTs
     GeneralizedNewtypeDeriving
+    KindSignatures
     ImportQualifiedPost
     LambdaCase
     NamedFieldPuns
@@ -88,8 +90,11 @@ library
     Cardano.Protocol.Strike.Settings
     Cardano.Protocol.WingRiders.Pool
     Cardano.Protocol.VyFinance.Pool
+    Cardano.Protocol.JSON
   build-depends:
     QuickCheck
+    , aeson
+    , aeson-typescript
     , base ^>=4.18.2.1
     , base16-bytestring
     , bytestring
@@ -100,6 +105,7 @@ library
     , convex-optics
     , hedgehog-quickcheck
     , lens
+    , openapi3
     , plutus-core
     , plutus-ledger-api
     , plutus-tx

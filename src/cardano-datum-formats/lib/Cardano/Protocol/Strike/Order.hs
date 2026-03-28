@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Strike.Order (
     OrderAction (..),
     OrderDatum (..),
@@ -5,6 +7,8 @@ module Cardano.Protocol.Strike.Order (
 
 import Cardano.Asset (Asset)
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions, stripFieldPrefix, sumOptionsWithFieldModifier)
+import Cardano.Protocol.JSON ()
 import Cardano.Protocol.Strike.Common (
     AddressHash,
     OpenPositionType,
@@ -13,6 +17,12 @@ import Cardano.Protocol.Strike.Common (
     maybeToOptionData,
  )
 import Cardano.Protocol.Strike.Position (PositionDatum)
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
@@ -46,12 +56,12 @@ data OrderAction
         { oaOwnerPkh :: AddressHash
         , oaOwnerStakeKey :: Maybe AddressHash
         }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 newtype OrderDatum = OrderDatum
     { odAction :: OrderAction
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary OrderAction where
     arbitrary =
@@ -123,3 +133,31 @@ instance PTx.FromData OrderDatum where
     fromBuiltinData dt = D.withConstr dt $ \case
         (0, [action]) -> OrderDatum <$> PTx.fromBuiltinData action
         _ -> Nothing
+
+strikeOrderActionOptions :: Aeson.Options
+strikeOrderActionOptions =
+    sumOptionsWithFieldModifier 0 (stripFieldPrefix "oa")
+
+instance ToJSON OrderAction where
+    toJSON = Aeson.genericToJSON strikeOrderActionOptions
+    toEncoding = Aeson.genericToEncoding strikeOrderActionOptions
+
+instance FromJSON OrderAction where
+    parseJSON = Aeson.genericParseJSON strikeOrderActionOptions
+
+$(deriveTypeScript (sumOptionsWithFieldModifier 0 (stripFieldPrefix "oa")) ''OrderAction)
+
+instance Schema.ToSchema OrderAction where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions strikeOrderActionOptions)
+
+instance ToJSON OrderDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON OrderDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''OrderDatum)
+
+instance Schema.ToSchema OrderDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))

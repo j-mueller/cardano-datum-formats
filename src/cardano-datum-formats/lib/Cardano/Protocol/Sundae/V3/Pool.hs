@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Sundae.V3.Pool (
     FeeBasisPoints (..),
     ProtocolFeeAmounts (..),
@@ -7,8 +9,15 @@ module Cardano.Protocol.Sundae.V3.Pool (
 
 import Cardano.Api qualified as C
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions)
 import Cardano.Protocol.Sundae.V3.Order (MultisigScript)
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
 import Data.ByteString qualified as BS
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.Gen.Cardano.Api.Typed qualified as Gen
@@ -20,7 +29,7 @@ data FeeBasisPoints = FeeBasisPoints
     { fbpBid :: Integer
     , fbpAsk :: Integer
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary FeeBasisPoints where
     arbitrary =
@@ -43,7 +52,7 @@ data ProtocolFeeAmounts = ProtocolFeeAmounts
     , pfaSecond :: C.Quantity
     , pfaThird :: C.Quantity
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary ProtocolFeeAmounts where
     arbitrary =
@@ -78,7 +87,7 @@ data SundaePoolDatum = SundaePoolDatum
     , spdMarketOpen :: Integer
     , spdProtocolFees :: C.Quantity
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary SundaePoolDatum where
     arbitrary =
@@ -137,7 +146,7 @@ data SundaeStablePoolDatum = SundaeStablePoolDatum
     , sspdSumInvariant :: Integer
     , sspdLinearAmplificationManager :: Maybe MultisigScript
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary SundaeStablePoolDatum where
     arbitrary =
@@ -234,3 +243,51 @@ withList dt match =
         match
         (const Nothing)
         (const Nothing)
+
+instance ToJSON FeeBasisPoints where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON FeeBasisPoints where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''FeeBasisPoints)
+
+instance Schema.ToSchema FeeBasisPoints where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
+
+instance ToJSON ProtocolFeeAmounts where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON ProtocolFeeAmounts where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''ProtocolFeeAmounts)
+
+instance Schema.ToSchema ProtocolFeeAmounts where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
+
+instance ToJSON SundaePoolDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON SundaePoolDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''SundaePoolDatum)
+
+instance Schema.ToSchema SundaePoolDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
+
+instance ToJSON SundaeStablePoolDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 4)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 4)
+
+instance FromJSON SundaeStablePoolDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 4)
+
+$(deriveTypeScript (jsonOptions 4) ''SundaeStablePoolDatum)
+
+instance Schema.ToSchema SundaeStablePoolDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 4))

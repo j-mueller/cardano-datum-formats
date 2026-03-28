@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Liqwid.Common (
     BatchState (..),
     IntegerPair (..),
@@ -7,7 +9,15 @@ module Cardano.Protocol.Liqwid.Common (
 ) where
 
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions)
+import Cardano.Protocol.JSON ()
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
 import Data.ByteString qualified as BS
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
@@ -16,7 +26,7 @@ import Test.QuickCheck.Gen qualified as Gen
 newtype PubKeyHash = PubKeyHash
     { getPubKeyHash :: PlutusTx.BuiltinByteString
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data BatchState = BatchState
     { bsField0 :: Integer
@@ -25,13 +35,13 @@ data BatchState = BatchState
     , bsField3 :: Integer
     , bsField4 :: Integer
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data IntegerPair = IntegerPair
     { ipField0 :: Integer
     , ipField1 :: Integer
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary PubKeyHash where
     arbitrary = PubKeyHash <$> arbitraryBuiltinByteString 28
@@ -85,3 +95,39 @@ fromList dt =
         Just
         (const Nothing)
         (const Nothing)
+
+instance ToJSON PubKeyHash where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON PubKeyHash where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''PubKeyHash)
+
+instance Schema.ToSchema PubKeyHash where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
+
+instance ToJSON BatchState where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON BatchState where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''BatchState)
+
+instance Schema.ToSchema BatchState where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSON IntegerPair where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
+
+instance FromJSON IntegerPair where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''IntegerPair)
+
+instance Schema.ToSchema IntegerPair where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))

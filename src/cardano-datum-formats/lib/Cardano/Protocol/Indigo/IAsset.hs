@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Indigo.IAsset (
     IAssetDatum (..),
     IAssetPrice (..),
@@ -5,8 +7,15 @@ module Cardano.Protocol.Indigo.IAsset (
 ) where
 
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions, sumOptions)
 import Cardano.Protocol.Indigo.Common (AssetClass, OnChainDecimal, arbitraryAnyBuiltinByteString, maybeFromOptionData, maybeToOptionData)
 import Cardano.Protocol.Indigo.PriceOracle (OracleAssetNft)
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
@@ -15,7 +24,7 @@ import Test.QuickCheck.Gen qualified as Gen
 data IAssetPrice
     = Delisted OnChainDecimal
     | Oracle OracleAssetNft
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 data IAssetContent = IAssetContent
     { iacAssetName :: PlutusTx.BuiltinByteString
@@ -33,12 +42,12 @@ data IAssetContent = IAssetContent
     , iacFirstIAsset :: Bool
     , iacNextIAsset :: Maybe PlutusTx.BuiltinByteString
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 newtype IAssetDatum = IAssetDatum
     { getIAssetContent :: IAssetContent
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary IAssetPrice where
     arbitrary = Gen.oneof [Delisted <$> arbitrary, Oracle <$> arbitrary]
@@ -185,3 +194,39 @@ iassetContentFromVariantData dt = D.withConstr dt $ \case
             <*> boolFromData firstIAsset
             <*> maybeFromOptionData D.getB nextIAsset
     _ -> Nothing
+
+instance ToJSON IAssetPrice where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON IAssetPrice where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''IAssetPrice)
+
+instance Schema.ToSchema IAssetPrice where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON IAssetContent where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON IAssetContent where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''IAssetContent)
+
+instance Schema.ToSchema IAssetContent where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
+
+instance ToJSON IAssetDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON IAssetDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''IAssetDatum)
+
+instance Schema.ToSchema IAssetDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))

@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Address.Plutus (
     PlutusAddress (..),
     fromAddress,
@@ -12,10 +14,23 @@ import Cardano.Api.Ledger qualified as L
 import Cardano.Data qualified as D
 import Cardano.Ledger.Credential qualified as Shelley
 import Cardano.Ledger.Plutus.TxInfo qualified as Plutus
+import Cardano.Protocol.JSON ()
+import Control.Lens ((&), (?~))
 import Control.Lens qualified as L
 import Convex.CardanoApi.Lenses qualified as L
 import Convex.PlutusLedger.V1 qualified as Convex
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (TypeScript (..), deriveTypeScript)
+import Data.ByteString.Base16 qualified as Base16
+import Data.OpenApi (NamedSchema (..))
+import Data.OpenApi.Internal (OpenApiType (OpenApiString))
+import Data.OpenApi.Lens qualified as OpenApiL
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
 import Data.Proxy (Proxy (..))
+import Data.Text.Encoding qualified as TE
+import GHC.Generics (Generic)
 import PlutusLedgerApi.V1 qualified as PV1
 import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
@@ -90,7 +105,7 @@ _PlutusPubKeyHashStake = L.prism' from to
 newtype PlutusStakeCredential = PlutusStakeCredential
     { getPlutusStakeCredential :: C.StakeCredential
     }
-    deriving newtype (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary PlutusStakeCredential where
     arbitrary = PlutusStakeCredential <$> H.hedgehog Gen.genStakeCredential
@@ -105,3 +120,65 @@ instance PlutusTx.FromData PlutusStakeCredential where
             value <- PlutusTx.fromBuiltinData x
             either (const Nothing) (Just . PlutusStakeCredential) (Convex.unTransStakeCredential value)
         _ -> Nothing
+
+instance ToJSON PlutusAddress where
+    toJSON =
+        Aeson.String
+            . TE.decodeUtf8
+            . Base16.encode
+            . C.serialiseToCBOR
+            . C.fromPlutusData
+            . PlutusTx.toData
+
+instance FromJSON PlutusAddress where
+    parseJSON =
+        Aeson.withText "PlutusAddress" $ \text -> do
+            rawBytes <- either (fail . show) pure $ Base16.decode (TE.encodeUtf8 text)
+            scriptData <- either (fail . show) pure $ C.deserialiseFromCBOR C.AsScriptData rawBytes
+            maybe (fail "failed to decode PlutusAddress") pure $ PlutusTx.fromData (C.toPlutusData scriptData)
+
+instance Schema.ToSchema PlutusAddress where
+    declareNamedSchema _ =
+        pure $
+            NamedSchema (Just "PlutusAddress") $
+                mempty
+                    & OpenApiL.type_ ?~ OpenApiString
+                    & OpenApiL.description ?~ "hex-encoded CBOR serialised Plutus address"
+
+instance TypeScript PlutusAddress where
+    getTypeScriptType _ = "string"
+
+instance ToJSON PlutusStakeCredential where
+    toJSON =
+        Aeson.String
+            . TE.decodeUtf8
+            . Base16.encode
+            . C.serialiseToCBOR
+            . C.fromPlutusData
+            . PlutusTx.toData
+
+    toEncoding =
+        Aeson.toEncoding
+            . TE.decodeUtf8
+            . Base16.encode
+            . C.serialiseToCBOR
+            . C.fromPlutusData
+            . PlutusTx.toData
+
+instance FromJSON PlutusStakeCredential where
+    parseJSON =
+        Aeson.withText "PlutusStakeCredential" $ \text -> do
+            rawBytes <- either (fail . show) pure $ Base16.decode (TE.encodeUtf8 text)
+            scriptData <- either (fail . show) pure $ C.deserialiseFromCBOR C.AsScriptData rawBytes
+            maybe (fail "failed to decode PlutusStakeCredential") pure $ PlutusTx.fromData (C.toPlutusData scriptData)
+
+instance TypeScript PlutusStakeCredential where
+    getTypeScriptType _ = "string"
+
+instance Schema.ToSchema PlutusStakeCredential where
+    declareNamedSchema _ =
+        pure $
+            NamedSchema (Just "PlutusStakeCredential") $
+                mempty
+                    & OpenApiL.type_ ?~ OpenApiString
+                    & OpenApiL.description ?~ "hex-encoded CBOR serialised Plutus stake credential"

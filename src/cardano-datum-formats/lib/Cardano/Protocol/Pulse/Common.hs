@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Pulse.Common (
     PubKeyHash (..),
     maybeToOptionData,
@@ -8,6 +10,14 @@ module Cardano.Protocol.Pulse.Common (
 
 import Cardano.Api qualified as C
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions)
+import Cardano.Protocol.JSON ()
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.Gen.Cardano.Api.Typed qualified as Gen
@@ -17,7 +27,7 @@ import Test.QuickCheck.Hedgehog qualified as H
 newtype PubKeyHash = PubKeyHash
     { getPubKeyHash :: C.Hash C.PaymentKey
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary PubKeyHash where
     arbitrary =
@@ -51,3 +61,15 @@ maybeFromOptionRawData dt = D.withConstr dt $ \case
     (0, [value]) -> Just (Just value)
     (1, []) -> Just Nothing
     _ -> Nothing
+
+instance ToJSON PubKeyHash where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON PubKeyHash where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''PubKeyHash)
+
+instance Schema.ToSchema PubKeyHash where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))

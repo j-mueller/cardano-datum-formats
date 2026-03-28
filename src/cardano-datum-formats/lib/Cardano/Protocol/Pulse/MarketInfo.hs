@@ -1,11 +1,21 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Cardano.Protocol.Pulse.MarketInfo (
     MarketInfoDatum (..),
 ) where
 
 import Cardano.Asset (Asset)
 import Cardano.Data qualified as D
+import Cardano.Protocol.JSON (jsonOptions)
+import Cardano.Protocol.JSON ()
 import Cardano.Transaction.OutputReference (OutputReference)
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson qualified as Aeson
+import Data.Aeson.TypeScript.TH (deriveTypeScript)
 import Data.ByteString qualified as BS
+import Data.OpenApi.Schema qualified as Schema
+import Data.OpenApi.SchemaOptions qualified as SchemaOptions
+import GHC.Generics (Generic)
 import PlutusTx qualified as PTx
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
@@ -37,7 +47,7 @@ data MarketInfoDatum = MarketInfoDatum
     , midYtRewardFeeRate :: Integer
     , midLpRevenueFeeRate :: Integer
     }
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Show, Generic)
 
 instance Arbitrary MarketInfoDatum where
     arbitrary =
@@ -130,3 +140,15 @@ instance PTx.FromData MarketInfoDatum where
 arbitraryBuiltinByteString :: Gen.Gen PlutusTx.BuiltinByteString
 arbitraryBuiltinByteString =
     PlutusTx.toBuiltin . BS.pack <$> Gen.listOf arbitrary
+
+instance ToJSON MarketInfoDatum where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON MarketInfoDatum where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''MarketInfoDatum)
+
+instance Schema.ToSchema MarketInfoDatum where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
