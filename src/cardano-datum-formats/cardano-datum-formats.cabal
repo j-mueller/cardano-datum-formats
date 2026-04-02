@@ -79,6 +79,20 @@ library
     Cardano.Protocol.Pulse.Order
     Cardano.Protocol.Pulse.SYVault
     Cardano.Protocol.Pulse.YTStake
+    Cardano.Protocol.Pulse.V1.Common
+    Cardano.Protocol.Pulse.V1.Market
+    Cardano.Protocol.Pulse.V1.MarketInfo
+    Cardano.Protocol.Pulse.V1.Oracle
+    Cardano.Protocol.Pulse.V1.Order
+    Cardano.Protocol.Pulse.V1.SYVault
+    Cardano.Protocol.Pulse.V1.YTStake
+    Cardano.Protocol.Pulse.V2.Common
+    Cardano.Protocol.Pulse.V2.Market
+    Cardano.Protocol.Pulse.V2.MarketInfo
+    Cardano.Protocol.Pulse.V2.Oracle
+    Cardano.Protocol.Pulse.V2.Order
+    Cardano.Protocol.Pulse.V2.SYVault
+    Cardano.Protocol.Pulse.V2.YTStake
     Cardano.Protocol.Sundae.Order
     Cardano.Protocol.Sundae.Pool
     Cardano.Protocol.Sundae.V3.Order

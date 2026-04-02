@@ -10,7 +10,7 @@ Typed Haskell representations of Cardano protocol datums, plus tests against rou
 | Sundae | Orders, pools | 🟢 | 🟢 |
 | Genius Yield | `PartialOrder`, `PartialOrderConfig`, `PartialOrderFeeOutput` | 🟢 | 🟠 |
 | Indigo | `CDP`, `IAsset`, `Gov`, `InterestOracle`, `LRP`, `PriceOracle`, `StabilityPool`, `Staking` | 🟢 | ⚪ |
-| Pulse | `MarketInfo`, `Market`, `Order`, `SYVault`, `Oracle`, `YTStake` | 🟢 | 🟢 |
+| Pulse | `V1` and `V2`: `MarketInfo`, `Market`, `Order`, `SYVault`, `Oracle`, `YTStake` | 🟢 | 🟢 |
 | Strike | `Order`, `Pool`, `Position`, `Settings` | 🟢 | 🟠 |
 | Liqwid | `Action`, `Loan`, `Market` | 🟠 | ⚪ |
 | MuesliSwap | Orders, pools | 🟢 | 🟢 |
@@ -18,6 +18,12 @@ Typed Haskell representations of Cardano protocol datums, plus tests against rou
 | WingRiders | Pools | 🟢 | ⚪ |
 
 Protocol-specific modules live under `Cardano.Protocol.*`.
+
+Pulse versioning notes:
+
+- Pulse modules are now versioned under `Cardano.Protocol.Pulse.V1.*` and `Cardano.Protocol.Pulse.V2.*`.
+- The unversioned `Cardano.Protocol.Pulse.*` modules re-export the current latest layout, which is `V2`.
+- `V2` adds `locked` to `MarketInfoDatum`, `rewardSy` to `SYVaultDatum`, and `OAddSY` to `OrderDatum`.
 
 Stability notes:
 
@@ -74,6 +80,7 @@ CARDANO_DATUM_FORMATS_BLOCKFROST_PROJECT=...
 ## Project Layout
 
 - `src/cardano-datum-formats/lib`: library modules for datum types and codecs
+- `src/cardano-datum-formats/lib/Cardano/Protocol/Pulse/V1` and `src/cardano-datum-formats/lib/Cardano/Protocol/Pulse/V2`: versioned Pulse datum modules
 - `src/cardano-datum-formats/test`: roundtrip and fixture-based tests
 - `src/cardano-datum-formats/exe/datum-collector`: live datum collection CLI
 - `docs/adding-datum-formats.md`: workflow for adding support for a new protocol or datum family
