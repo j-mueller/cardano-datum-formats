@@ -2,11 +2,11 @@
 
 pkgs.haskell-nix.cabalProject' ({ ... }: {
   name = "cardano-datum-formats";
-  compiler-nix-name = lib.mkDefault "ghc966";
+  compiler-nix-name = lib.mkDefault "ghc9103";
   src = lib.cleanSource ../.;
 
   flake.variants = {
-    ghc966 = {};
+    ghc9103 = {};
   };
 
   inputMap = {
