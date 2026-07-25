@@ -2,8 +2,10 @@
 
 let
   inherit (pkgs) lib;
+  compiler = project.projectVariants.${ghc}.ghcWithPackages (_: []);
 
   tools = [
+    compiler
     pkgs.cabal-install
     pkgs.haskellPackages.cabal-fmt
     pkgs.haskellPackages.fourmolu
