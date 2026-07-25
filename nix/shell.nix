@@ -6,7 +6,7 @@ let
   tools = [
     pkgs.cabal-install
     pkgs.haskellPackages.cabal-fmt
-    pkgs.fourmolu
+    pkgs.haskellPackages.fourmolu
     pkgs.hlint
     pkgs.git
     pkgs.pkg-config
@@ -15,10 +15,11 @@ let
   nativeLibs = [
     pkgs.blst
     pkgs.bzip2
+    pkgs.gmp
     pkgs.lmdb
     pkgs.lmdb.dev
-    pkgs.libsodium
-    pkgs.libsodium.dev
+    pkgs.libsodium-vrf
+    pkgs.libsodium-vrf.dev
     pkgs.secp256k1
     pkgs.xz
     pkgs.zlib
@@ -27,7 +28,7 @@ let
 
   cardanoPkgConfigAliases = pkgs.runCommand "cardano-pkg-config-aliases" { } ''
     mkdir -p "$out/lib/pkgconfig"
-    ln -s ${pkgs.libsodium.dev}/lib/pkgconfig/libsodium.pc "$out/lib/pkgconfig/libsodium-any.pc"
+    ln -s ${pkgs.libsodium-vrf.dev}/lib/pkgconfig/libsodium.pc "$out/lib/pkgconfig/libsodium-any.pc"
     ln -s ${pkgs.blst}/lib/pkgconfig/libblst.pc "$out/lib/pkgconfig/libblst-any.pc"
     ln -s ${pkgs.secp256k1}/lib/pkgconfig/libsecp256k1.pc "$out/lib/pkgconfig/libsecp256k1-any.pc"
   '';

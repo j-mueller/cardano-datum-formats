@@ -7,7 +7,9 @@
       inputs.hackage.follows = "hackage";
     };
 
-    nixpkgs.follows = "haskell-nix/nixpkgs";
+    # nixpkgs 24.11 provides the GHC 9.4.5 bootstrap compiler used by haskell.nix.
+    nixpkgs.follows = "haskell-nix/nixpkgs-2411";
+    nixpkgs-unstable.follows = "haskell-nix/nixpkgs-unstable";
 
     hackage = {
       url = "github:input-output-hk/hackage.nix";
