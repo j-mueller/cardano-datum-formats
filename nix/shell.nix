@@ -1,26 +1,58 @@
-{ pkgs, project, ghc, withHoogle ? true }:
+{ pkgs, project, ghc, withHoogle ? false }:
 
 let
-  tools = {
-    cabal = project.projectVariants.${ghc}.tool "cabal" "latest";
-    cabal-fmt = project.projectVariants.${ghc}.tool "cabal-fmt" "latest";
-    fourmolu = project.projectVariants.${ghc}.tool "fourmolu" "latest";
-    hlint = project.projectVariants.${ghc}.tool "hlint" "latest";
-  };
-in
-project.shellFor {
-  name = "cardano-datum-formats-${ghc}";
-  withHoogle = withHoogle;
+  inherit (pkgs) lib;
+  compiler = project.projectVariants.${ghc}.ghcWithPackages (_: []);
 
-  buildInputs = [
-    tools.cabal
-    tools.cabal-fmt
-    tools.fourmolu
-    tools.hlint
+  tools = [
+    compiler
+    pkgs.cabal-install
+    pkgs.haskellPackages.cabal-fmt
+    pkgs.haskellPackages.fourmolu
+    pkgs.hlint
     pkgs.git
+    pkgs.pkg-config
   ];
 
+  nativeLibs = [
+    pkgs.blst
+    pkgs.bzip2
+    pkgs.gmp
+    pkgs.lmdb
+    pkgs.lmdb.dev
+    pkgs.libsodium-vrf
+    pkgs.libsodium-vrf.dev
+    pkgs.secp256k1
+    pkgs.xz
+    pkgs.zlib
+    pkgs.zstd
+  ];
+
+  cardanoPkgConfigAliases = pkgs.runCommand "cardano-pkg-config-aliases" { } ''
+    mkdir -p "$out/lib/pkgconfig"
+    ln -s ${pkgs.libsodium-vrf.dev}/lib/pkgconfig/libsodium.pc "$out/lib/pkgconfig/libsodium-any.pc"
+    ln -s ${pkgs.blst}/lib/pkgconfig/libblst.pc "$out/lib/pkgconfig/libblst-any.pc"
+    ln -s ${pkgs.secp256k1}/lib/pkgconfig/libsecp256k1.pc "$out/lib/pkgconfig/libsecp256k1-any.pc"
+  '';
+in
+pkgs.mkShell {
+  name = "cardano-datum-formats-${ghc}-franken";
+
+  packages = tools ++ nativeLibs ++ [
+    cardanoPkgConfigAliases
+  ];
+
+  PKG_CONFIG_PATH = lib.makeSearchPath "lib/pkgconfig" (nativeLibs ++ [
+    cardanoPkgConfigAliases
+  ]);
+
+  LD_LIBRARY_PATH = lib.makeLibraryPath nativeLibs;
+
   shellHook = ''
-    export PS1="\n\[\033[1;32m\][nix-shell:\w]\$\[\033[0m\] "
+    export PS1="\n\[\033[1;32m\][franken:${ghc}:\w]\$\[\033[0m\] "
+
+    if ! command -v ghc-9.10.3 >/dev/null 2>&1; then
+      echo "warning: ghc-9.10.3 is not on PATH; cabal.project currently expects it" >&2
+    fi
   '';
 }

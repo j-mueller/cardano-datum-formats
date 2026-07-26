@@ -7,7 +7,9 @@
       inputs.hackage.follows = "hackage";
     };
 
-    nixpkgs.follows = "haskell-nix/nixpkgs";
+    # nixpkgs 24.11 provides the GHC 9.4.5 bootstrap compiler used by haskell.nix.
+    nixpkgs.follows = "haskell-nix/nixpkgs-2411";
+    nixpkgs-unstable.follows = "haskell-nix/nixpkgs-unstable";
 
     hackage = {
       url = "github:input-output-hk/hackage.nix";
@@ -40,11 +42,9 @@
   nixConfig = {
     extra-substituters = [
       "https://cache.iog.io"
-      "https://cache.ml42.de"
     ];
     extra-trusted-public-keys = [
       "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-      "cache.ml42.de:RKmSRP9TOc87nh9FZCM/b/pMIE3kBLEeIe71ReCBwRM="
     ];
     allow-import-from-derivation = true;
   };

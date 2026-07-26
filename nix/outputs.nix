@@ -27,10 +27,13 @@ let
 in
 {
   devShells = rec {
-    default = ghc966;
-    ghc966 = mkShell { ghc = "ghc966"; };
-    ghc966-nohoogle = mkShell {
-      ghc = "ghc966";
+    default = ghc9103;
+    ghc9103 = mkShell {
+      ghc = "ghc9103";
+      withHoogle = false;
+    };
+    ghc9103-nohoogle = mkShell {
+      ghc = "ghc9103";
       withHoogle = false;
     };
   };

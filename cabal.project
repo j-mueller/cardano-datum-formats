@@ -15,10 +15,33 @@ repository cardano-haskell-packages
     d4a35cd3121aa00d18544bb0ac01c3e1691d618f462c46129271bccf39f7e8ee
 
 index-state:
-  , hackage.haskell.org 2026-01-08T17:40:53Z
-  , cardano-haskell-packages 2026-01-08T17:40:53Z
+  , hackage.haskell.org 2026-05-06T05:39:34Z
+  , cardano-haskell-packages 2026-05-05T04:28:05Z
 
-with-compiler: ghc-9.6.6
+with-compiler: ghc-9.10.3
+
+write-ghc-environment-files: never
+
+test-show-details: direct
+tests: True
+
+-- GHC 9.10.3 ships with containers 0.7, but some deps still require ^>= 0.6
+-- cardano-api 11.0.0.0 requires plutus-core/plutus-ledger-api ^>=1.63
+allow-newer:
+  servant-multipart-client:random
+
+constraints:
+  cardano-api ==11.0.0.0
+  , cardano-node ==11.0.0
+  , aeson ==2.2.4.1
+  , blockio +serialblockio
+  , blockfrost-client ==0.13.0.0
+  , blockfrost-client-core ==0.8.0.0
+  , io-classes ==1.8.0.1
+  , plutus-core ==1.63.0.0
+  , plutus-ledger-api ==1.63.0.0
+  , plutus-tx ==1.63.0.0
+  , validation <1.2
 
 packages:
   src/cardano-datum-formats
@@ -26,8 +49,8 @@ packages:
 source-repository-package
   type: git
   location: https://github.com/j-mueller/sc-tools
-  tag: 2e16da1658a5f6c44208d244c3c39b42b3aa5482
-  --sha256: sha256-QsC54Dg/Wi11iakpYf6aFVSssx+rncqgo9GPaJg+5Wg=
+  tag: e5d3e22e853ab841c6ee9601645de1bd8fb6cfa5
+  --sha256: sha256-5qG4G6XTE32V3ybJ0NPfO4j5Q95qxf1CEMK8zlvT1zI=
   subdir:
     src/devnet
     src/coin-selection

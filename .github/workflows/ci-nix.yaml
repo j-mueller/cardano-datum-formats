@@ -33,5 +33,6 @@ jobs:
 
       - name: Build and test in nix shell
         run: |
-          nix develop --accept-flake-config .#ghc966 -c cabal build all
-          nix develop --accept-flake-config .#ghc966 -c cabal test cardano-datum-formats-test --test-show-details=direct
+          nix develop --accept-flake-config .#ghc9103 -c cabal update
+          nix develop --accept-flake-config .#ghc9103 -c cabal build all
+          nix develop --accept-flake-config .#ghc9103 -c cabal test cardano-datum-formats-test --test-show-details=direct
