@@ -103,6 +103,9 @@ library
     Cardano.Protocol.Strike.Position
     Cardano.Protocol.Strike.Settings
     Cardano.Protocol.WingRiders.Pool
+    Cardano.Protocol.WingRiders.V2.Common
+    Cardano.Protocol.WingRiders.V2.Pool
+    Cardano.Protocol.WingRiders.V2.Request
     Cardano.Protocol.VyFinance.Pool
     Cardano.Protocol.JSON
   build-depends:
