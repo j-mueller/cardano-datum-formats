@@ -7,12 +7,9 @@ module Cardano.Protocol.WingRiders.V2.Common (
 ) where
 
 import Cardano.Data qualified as D
-import Data.ByteString qualified as BS
-import Data.Word (Word8)
 import GHC.Generics (Generic)
 import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
-import Test.QuickCheck qualified as QC
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
 import Test.QuickCheck.Gen qualified as Gen
 
@@ -24,8 +21,8 @@ data Credential
 instance Arbitrary Credential where
     arbitrary =
         Gen.oneof
-            [ VerificationKeyCredential <$> arbitraryBuiltinByteString
-            , ScriptCredential <$> arbitraryBuiltinByteString
+            [ VerificationKeyCredential <$> D.arbitraryBuiltinByteString
+            , ScriptCredential <$> D.arbitraryBuiltinByteString
             ]
 
 instance PlutusTx.ToData Credential where
@@ -93,6 +90,3 @@ instance PlutusTx.FromData Address where
                 <$> PlutusTx.fromBuiltinData paymentCredential
                 <*> PlutusTx.fromBuiltinData stakingCredential
         _ -> Nothing
-
-arbitraryBuiltinByteString :: QC.Gen PlutusTx.BuiltinByteString
-arbitraryBuiltinByteString = PlutusTx.toBuiltin . BS.pack <$> (arbitrary :: QC.Gen [Word8])

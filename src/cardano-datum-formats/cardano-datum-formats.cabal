@@ -97,6 +97,8 @@ library
     Cardano.Protocol.Sundae.Pool
     Cardano.Protocol.Sundae.V3.Order
     Cardano.Protocol.Sundae.V3.Pool
+    Cardano.Protocol.Sundae.V4.Order
+    Cardano.Protocol.Sundae.V4.Pool
     Cardano.Protocol.Strike.Common
     Cardano.Protocol.Strike.Order
     Cardano.Protocol.Strike.Pool
