@@ -3,6 +3,7 @@ module Cardano.Protocol.Sundae.Test (
 ) where
 
 import Cardano.Api qualified as C
+import Cardano.Asset (Asset (..))
 import Cardano.Data qualified as Datum
 import Cardano.Protocol.Sundae.V3.Order qualified as Order
 import Cardano.Protocol.Sundae.V3.Pool qualified as Pool
@@ -54,8 +55,14 @@ tests =
             , testProperty "StakingCredential" (datumRoundTrip @OrderV4.StakingCredential)
             , testProperty "SundaeAddress" (datumRoundTrip @OrderV4.SundaeAddress)
             , testProperty "Destination" (datumRoundTrip @OrderV4.Destination)
+            , testProperty "BasicConstraint" (datumRoundTrip @OrderV4.BasicConstraint)
+            , testProperty "SwapConstraint" (datumRoundTrip @OrderV4.SwapConstraint)
+            , testProperty "FairnessConstraint" (datumRoundTrip @OrderV4.FairnessConstraint)
             , testProperty "OrderConstraint" (datumRoundTrip @OrderV4.OrderConstraint)
             , testProperty "OrderDatum" (datumRoundTrip @OrderV4.OrderDatum)
+            , HUnit.testCase "decode SDK basic swap constraint" decodeV4BasicSwapConstraint
+            , HUnit.testCase "decode SDK partial-fill swap constraint" decodeV4SwapConstraint
+            , HUnit.testCase "build swap intent constraints" buildV4SwapIntentConstraints
             , HUnit.testCase "decode contract-generated order datum" decodeV4OrderDatum
             ]
         , testGroup
@@ -70,6 +77,68 @@ tests =
             , HUnit.testCase "decode sdk pool datum" decodeV4PoolDatum
             ]
         ]
+
+decodeV4BasicSwapConstraint :: HUnit.Assertion
+decodeV4BasicSwapConstraint = do
+    let sdkHex =
+            "d87b9f9f9fd8799f42aaaa41aaff1a000f4240ffff9f9fd8799f42bbbb41bbff1a000dbba0ffffff"
+    constraint <- either HUnit.assertFailure pure (Datum.fromBuiltinDataHex @OrderV4.BasicConstraint sdkHex)
+    HUnit.assertEqual
+        "basic swap"
+        (OrderV4.BasicSwap [offeredAmount 1_000_000] [receivedAmount 900_000])
+        constraint
+    assertDatumMatchesFixture sdkHex constraint
+
+decodeV4SwapConstraint :: HUnit.Assertion
+decodeV4SwapConstraint = do
+    let sdkHex =
+            "d87b9fd8799f42aaaa41aaff1a000f42401a000b71b09f9fd8799f42bbbb41bbff1a000dbba0ffffff"
+    constraint <- either HUnit.assertFailure pure (Datum.fromBuiltinDataHex @OrderV4.SwapConstraint sdkHex)
+    HUnit.assertEqual
+        "partial-fill swap"
+        ( OrderV4.SwapConstraint
+            (Asset (hexToBuiltinByteString "aaaa") (hexToBuiltinByteString "aa"))
+            (C.Quantity 1_000_000)
+            (C.Quantity 750_000)
+            [receivedAmount 900_000]
+        )
+        constraint
+    assertDatumMatchesFixture sdkHex constraint
+
+buildV4SwapIntentConstraints :: HUnit.Assertion
+buildV4SwapIntentConstraints = do
+    let basicHash = hexToBuiltinByteString "11"
+        fairnessHash = hexToBuiltinByteString "22"
+        constraints =
+            OrderV4.swapIntentConstraints
+                basicHash
+                fairnessHash
+                (offeredAmount 1_000_000)
+                [receivedAmount 900_000]
+    HUnit.assertEqual "module hashes" [basicHash, fairnessHash] (OrderV4.ocModuleHash <$> constraints)
+    case constraints of
+        [basicConstraint, fairnessConstraint] -> do
+            HUnit.assertEqual
+                "basic payload"
+                (PlutusTx.toBuiltinData $ OrderV4.BasicSwap [offeredAmount 1_000_000] [receivedAmount 900_000])
+                (OrderV4.ocData basicConstraint)
+            HUnit.assertEqual
+                "fairness payload"
+                (PlutusTx.mkConstr 0 [])
+                (OrderV4.ocData fairnessConstraint)
+        _ -> HUnit.assertFailure "expected basic and fairness constraints"
+
+offeredAmount :: Integer -> PoolV4.AssetAmount
+offeredAmount amount =
+    PoolV4.AssetAmount
+        (Asset (hexToBuiltinByteString "aaaa") (hexToBuiltinByteString "aa"))
+        (C.Quantity amount)
+
+receivedAmount :: Integer -> PoolV4.AssetAmount
+receivedAmount amount =
+    PoolV4.AssetAmount
+        (Asset (hexToBuiltinByteString "bbbb") (hexToBuiltinByteString "bb"))
+        (C.Quantity amount)
 
 decodeV4OrderDatum :: HUnit.Assertion
 decodeV4OrderDatum = do
