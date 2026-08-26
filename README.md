@@ -7,7 +7,7 @@ Typed Haskell representations of Cardano protocol datums, plus tests against rou
 | Protocol | Supported datum families | Stability | Destination datum |
 | --- | --- | --- | --- |
 | MinSwap | Orders, pools | 🟢 | 🟢 |
-| Sundae | Orders, pools | 🟢 | 🟢 |
+| Sundae | `V1`, `V3`, and `V4` orders and pools | 🟢 | 🟢 |
 | Genius Yield | `PartialOrder`, `PartialOrderConfig`, `PartialOrderFeeOutput` | 🟢 | 🟠 |
 | Indigo | `CDP`, `IAsset`, `Gov`, `InterestOracle`, `LRP`, `PriceOracle`, `StabilityPool`, `Staking` | 🟢 | ⚪ |
 | Pulse | `V1` and `V2`: `MarketInfo`, `Market`, `Order`, `SYVault`, `Oracle`, `YTStake` | 🟢 | 🟢 |
@@ -24,6 +24,8 @@ Pulse versioning notes:
 - Pulse modules are now versioned under `Cardano.Protocol.Pulse.V1.*` and `Cardano.Protocol.Pulse.V2.*`.
 - The unversioned `Cardano.Protocol.Pulse.*` modules re-export the current latest layout, which is `V2`.
 - `V2` adds `locked` to `MarketInfoDatum`, `rewardSy` to `SYVaultDatum`, and `OAddSY` to `OrderDatum`.
+
+Sundae v4's composable order constraints and pool module state remain opaque data or bytes where the protocol blueprint does not define their module-specific payloads.
 
 Stability notes:
 

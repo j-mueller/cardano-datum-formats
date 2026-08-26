@@ -6,10 +6,13 @@ import Cardano.Api qualified as C
 import Cardano.Data qualified as Datum
 import Cardano.Protocol.Sundae.V3.Order qualified as Order
 import Cardano.Protocol.Sundae.V3.Pool qualified as Pool
+import Cardano.Protocol.Sundae.V4.Order qualified as OrderV4
+import Cardano.Protocol.Sundae.V4.Pool qualified as PoolV4
 import Cardano.Test.Utils (datumRoundTrip, fromHexRawBytes, hexToBuiltinByteString, scriptDataFromHex)
 import Data.Maybe (isJust)
 import Data.Proxy (Proxy (..))
 import PlutusTx qualified
+import PlutusTx.Builtins qualified as PlutusTx
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit qualified as HUnit
 import Test.Tasty.QuickCheck (testProperty)
@@ -44,7 +47,64 @@ tests =
             , HUnit.testCase "decode mainnet v3 pool datum" decodeMainnetV3PoolDatum
             , HUnit.testCase "decode mainnet stableswap pool datum" decodeMainnetStablePoolDatum
             ]
+        , testGroup
+            "v4 order datum"
+            [ testProperty "MultisigScript" (datumRoundTrip @OrderV4.MultisigScript)
+            , testProperty "Credential" (datumRoundTrip @OrderV4.Credential)
+            , testProperty "StakeCredential" (datumRoundTrip @OrderV4.StakeCredential)
+            , testProperty "SundaeAddress" (datumRoundTrip @OrderV4.SundaeAddress)
+            , testProperty "Destination" (datumRoundTrip @OrderV4.Destination)
+            , testProperty "OrderConstraint" (datumRoundTrip @OrderV4.OrderConstraint)
+            , testProperty "OrderDatum" (datumRoundTrip @OrderV4.OrderDatum)
+            , HUnit.testCase "decode contract-generated order datum" decodeV4OrderDatum
+            ]
+        , testGroup
+            "v4 pool datum"
+            [ testProperty "AssetAmount" (datumRoundTrip @PoolV4.AssetAmount)
+            , testProperty "ActionEntry" (datumRoundTrip @PoolV4.ActionEntry)
+            , testProperty "ModuleState" (datumRoundTrip @PoolV4.ModuleState)
+            , testProperty "PoolDatum" (datumRoundTrip @PoolV4.PoolDatum)
+            , HUnit.testCase "decode sdk pool datum" decodeV4PoolDatum
+            ]
         ]
+
+decodeV4OrderDatum :: HUnit.Assertion
+decodeV4OrderDatum = do
+    -- Canonical CBOR from the official SDK's blueprint cross-check.
+    let contractHex =
+            "d8799fd8799f50aabbccdd00112233445566778899aabbffd8799fd8799fd8799f50aabb0011223344556677889900112233ffd87a80ffd87a80ff1a0016e3601901f442aabb9f9f581d0011223344556677889900aabbccddeeff00112233445566778899aabbd8799f9f9fd8799f42aaaa41aaff1a000f4240ffff9f9fd8799f42bbbb41bbff1a000dbba0ffffffffffd87980ff"
+    orderDatum <- either HUnit.assertFailure pure (Datum.fromBuiltinDataHex @OrderV4.OrderDatum contractHex)
+    HUnit.assertEqual
+        "owner"
+        (OrderV4.Signature $ hexToBuiltinByteString "aabbccdd00112233445566778899aabb")
+        (OrderV4.odOwner orderDatum)
+    HUnit.assertEqual "service budget" (C.Quantity 1_500_000) (OrderV4.odServiceBudget orderDatum)
+    HUnit.assertEqual "max per execution" (C.Quantity 500) (OrderV4.odMaxPerExecution orderDatum)
+    HUnit.assertEqual "config token" (hexToBuiltinByteString "aabb") (OrderV4.odConfigToken orderDatum)
+    HUnit.assertEqual "constraint count" 1 (length $ OrderV4.odConstraints orderDatum)
+    HUnit.assertEqual "extension" (PlutusTx.mkConstr 0 []) (OrderV4.odExtension orderDatum)
+    assertDatumMatchesFixture contractHex orderDatum
+
+decodeV4PoolDatum :: HUnit.Assertion
+decodeV4PoolDatum = do
+    -- Golden CBOR from the official SDK's v4 pool datum test.
+    let sdkHex =
+            "d8799f9f9fd8799f42aaaa41aaff1903e8ff9fd8799f42bbbb41bbff1903e8ffff1903e8001903e844deadbeef9fd8799f1864d87a809f581c11111111111111111111111111111111111111111111111111111111581c22222222222222222222222222222222222222222222222222222222581c33333333333333333333333333333333333333333333333333333333ffffff9f9f581c1111111111111111111111111111111111111111111111111111111158201000fdabb5fe420325e8c9bf815eef8fd18f32b131bc5c9c62f568bdabc66621ff9f581c2222222222222222222222222222222222222222222222222222222244aabbccddff9f581c333333333333333333333333333333333333333333333333333333334180ffffff"
+    poolDatum <- either HUnit.assertFailure pure (Datum.fromBuiltinDataHex @PoolV4.PoolDatum sdkHex)
+    HUnit.assertEqual "asset count" 2 (length $ PoolV4.pdAssets poolDatum)
+    HUnit.assertEqual "total LP" (C.Quantity 1_000) (PoolV4.pdTotalLp poolDatum)
+    HUnit.assertEqual "circulating LP" (C.Quantity 0) (PoolV4.pdCirculatingLp poolDatum)
+    HUnit.assertEqual "preminted LP" (C.Quantity 1_000) (PoolV4.pdPremintedLp poolDatum)
+    HUnit.assertEqual "identifier" (hexToBuiltinByteString "deadbeef") (PoolV4.pdIdentifier poolDatum)
+    HUnit.assertEqual "action count" 1 (length $ PoolV4.pdActions poolDatum)
+    HUnit.assertEqual "module state count" 3 (length $ PoolV4.pdModuleState poolDatum)
+    assertDatumMatchesFixture sdkHex poolDatum
+
+assertDatumMatchesFixture :: (PlutusTx.ToData a) => String -> a -> HUnit.Assertion
+assertDatumMatchesFixture fixtureHex value = do
+    expected <- either HUnit.assertFailure pure (scriptDataFromHex fixtureHex)
+    let actual = C.fromPlutusData $ PlutusTx.builtinDataToData $ PlutusTx.toBuiltinData value
+    HUnit.assertEqual "re-encoded datum" expected actual
 
 decodeSwapDatum :: HUnit.Assertion
 decodeSwapDatum = do
