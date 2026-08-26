@@ -3,7 +3,7 @@
 module Cardano.Protocol.Sundae.V4.Order (
     MultisigScript (..),
     Credential (..),
-    StakeCredential (..),
+    StakingCredential (..),
     SundaeAddress (..),
     Destination (..),
     OrderConstraint (..),
@@ -13,7 +13,7 @@ module Cardano.Protocol.Sundae.V4.Order (
 import Cardano.Api qualified as C
 import Cardano.Data qualified as D
 import Cardano.Protocol.JSON (jsonOptions, sumOptions)
-import Cardano.Protocol.Sundae.V4.Common
+import Cardano.Protocol.Sundae.V3.Order (Credential (..), MultisigScript (..), StakingCredential (..), SundaeAddress (..))
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Aeson qualified as Aeson
 import Data.Aeson.TypeScript.TH (deriveTypeScript)
@@ -40,7 +40,7 @@ instance Arbitrary Destination where
 instance PlutusTx.ToData Destination where
     toBuiltinData = \case
         FixedDestination address datum ->
-            PlutusTx.mkConstr 0 [PlutusTx.toBuiltinData address, toOption id datum]
+            PlutusTx.mkConstr 0 [PlutusTx.toBuiltinData address, D.toOption id datum]
         SelfDestination -> PlutusTx.mkConstr 1 []
 
 instance PlutusTx.FromData Destination where
@@ -48,7 +48,7 @@ instance PlutusTx.FromData Destination where
         (0, [address, datum]) ->
             FixedDestination
                 <$> PlutusTx.fromBuiltinData address
-                <*> fromOption Just datum
+                <*> D.fromOption Just datum
         (1, []) -> Just SelfDestination
         _ -> Nothing
 
@@ -59,14 +59,14 @@ data OrderConstraint = OrderConstraint
     deriving stock (Eq, Show, Generic)
 
 instance Arbitrary OrderConstraint where
-    arbitrary = OrderConstraint <$> arbitraryBuiltinByteString <*> arbitraryBuiltinData
+    arbitrary = OrderConstraint <$> D.arbitraryBuiltinByteString <*> D.arbitraryBuiltinData
 
 instance PlutusTx.ToData OrderConstraint where
     toBuiltinData OrderConstraint{ocModuleHash, ocData} =
         PlutusTx.mkList [PlutusTx.mkB ocModuleHash, ocData]
 
 instance PlutusTx.FromData OrderConstraint where
-    fromBuiltinData dt = fromList dt $ \case
+    fromBuiltinData dt = D.fromList dt $ \case
         [D.getB -> Just ocModuleHash, ocData] -> Just OrderConstraint{ocModuleHash, ocData}
         _ -> Nothing
 
@@ -88,9 +88,9 @@ instance Arbitrary OrderDatum where
             <*> arbitrary
             <*> (C.Quantity <$> arbitrary)
             <*> (C.Quantity <$> arbitrary)
-            <*> arbitraryBuiltinByteString
+            <*> D.arbitraryBuiltinByteString
             <*> arbitrary
-            <*> arbitraryBuiltinData
+            <*> D.arbitraryBuiltinData
 
 instance PlutusTx.ToData OrderDatum where
     toBuiltinData OrderDatum{odOwner, odDestination, odServiceBudget = C.Quantity serviceBudget, odMaxPerExecution = C.Quantity maxPerExecution, odConfigToken, odConstraints, odExtension} =
@@ -119,7 +119,7 @@ instance PlutusTx.FromData OrderDatum where
         _ -> Nothing
 
 arbitraryOptionalData :: Gen.Gen (Maybe PlutusTx.BuiltinData)
-arbitraryOptionalData = Gen.oneof [pure Nothing, Just <$> arbitraryBuiltinData]
+arbitraryOptionalData = Gen.oneof [pure Nothing, Just <$> D.arbitraryBuiltinData]
 
 instance ToJSON Destination where
     toJSON = Aeson.genericToJSON (sumOptions 0)

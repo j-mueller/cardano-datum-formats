@@ -8,13 +8,7 @@ module Cardano.Address.Aiken (
 
 import Cardano.Api qualified as C
 import Cardano.Data qualified as D
-import Cardano.Protocol.JSON (
-    jsonOptions,
-    stripFieldPrefix,
-    sumOptions,
-    sumOptionsWithFieldModifier,
- )
-import Cardano.Protocol.JSON ()
+import Cardano.Protocol.JSON (jsonOptions, stripFieldPrefix, sumOptions, sumOptionsWithFieldModifier)
 import Control.Monad ((>=>))
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Aeson qualified as Aeson
@@ -101,7 +95,7 @@ instance PlutusTx.ToData AikenAddress where
         PlutusTx.mkConstr
             0
             [ PlutusTx.toBuiltinData aaPaymentCredential
-            , maybeToOption aaStakeCredential
+            , D.toOption PlutusTx.toBuiltinData aaStakeCredential
             ]
 
 instance PlutusTx.FromData AikenAddress where
@@ -109,19 +103,8 @@ instance PlutusTx.FromData AikenAddress where
         (0, [paymentCredential, stakeCredential]) ->
             AikenAddress
                 <$> PlutusTx.fromBuiltinData paymentCredential
-                <*> fromOption PlutusTx.fromBuiltinData stakeCredential
+                <*> D.fromOption PlutusTx.fromBuiltinData stakeCredential
         _ -> Nothing
-
-maybeToOption :: PlutusTx.ToData a => Maybe a -> PlutusTx.BuiltinData
-maybeToOption = \case
-    Nothing -> PlutusTx.mkConstr 1 []
-    Just value -> PlutusTx.mkConstr 0 [PlutusTx.toBuiltinData value]
-
-fromOption :: (PlutusTx.BuiltinData -> Maybe a) -> PlutusTx.BuiltinData -> Maybe (Maybe a)
-fromOption decode dt = D.withConstr dt $ \case
-    (0, [value]) -> Just <$> decode value
-    (1, []) -> Just Nothing
-    _ -> Nothing
 
 instance ToJSON Credential where
     toJSON = Aeson.genericToJSON (sumOptions 0)

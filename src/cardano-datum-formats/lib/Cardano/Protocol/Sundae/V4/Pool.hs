@@ -1,6 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Cardano.Protocol.Sundae.V4.Pool (
+    Rational (..),
+    ConstantSumConfig (..),
     AssetAmount (..),
     ActionEntry (..),
     ModuleState (..),
@@ -8,9 +10,9 @@ module Cardano.Protocol.Sundae.V4.Pool (
 ) where
 
 import Cardano.Api qualified as C
+import Cardano.Asset (Asset)
 import Cardano.Data qualified as D
 import Cardano.Protocol.JSON (jsonOptions)
-import Cardano.Protocol.Sundae.V4.Common
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Aeson qualified as Aeson
 import Data.Aeson.TypeScript.TH (deriveTypeScript)
@@ -21,6 +23,75 @@ import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
 import Test.QuickCheck.Arbitrary (Arbitrary (..))
 import Test.QuickCheck.Gen qualified as Gen
+import Prelude hiding (Rational)
+
+data AssetAmount = AssetAmount
+    { aaAsset :: Asset
+    , aaAmount :: C.Quantity
+    }
+    deriving stock (Eq, Show, Generic)
+
+instance Arbitrary AssetAmount where
+    arbitrary = AssetAmount <$> arbitrary <*> (C.Quantity <$> arbitrary)
+
+instance PlutusTx.ToData AssetAmount where
+    toBuiltinData AssetAmount{aaAsset, aaAmount = C.Quantity amount} =
+        PlutusTx.mkList [PlutusTx.toBuiltinData aaAsset, PlutusTx.mkI amount]
+
+instance PlutusTx.FromData AssetAmount where
+    fromBuiltinData dt = D.fromList dt $ \case
+        [asset, D.getI -> Just amount] -> AssetAmount <$> PlutusTx.fromBuiltinData asset <*> pure (C.Quantity amount)
+        _ -> Nothing
+
+data Rational = Rational
+    { rNum :: Integer
+    , rDen :: Integer
+    }
+    deriving stock (Eq, Show, Generic)
+
+instance Arbitrary Rational where
+    arbitrary = Rational <$> arbitrary <*> arbitrary
+
+instance PlutusTx.ToData Rational where
+    toBuiltinData Rational{rNum, rDen} =
+        PlutusTx.mkConstr 0 [PlutusTx.mkI rNum, PlutusTx.mkI rDen]
+
+instance PlutusTx.FromData Rational where
+    fromBuiltinData dt = D.withConstr dt $ \case
+        (0, [D.getI -> Just rNum, D.getI -> Just rDen]) ->
+            Just Rational{rNum, rDen}
+        _ -> Nothing
+
+data ConstantSumConfig = ConstantSumConfig
+    { cscPrices :: [Integer]
+    , cscFee :: Rational
+    , cscBountyK :: Rational
+    , cscWaiveFeeOnClaim :: Bool
+    }
+    deriving stock (Eq, Show, Generic)
+
+instance Arbitrary ConstantSumConfig where
+    arbitrary = ConstantSumConfig <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+instance PlutusTx.ToData ConstantSumConfig where
+    toBuiltinData ConstantSumConfig{cscPrices, cscFee, cscBountyK, cscWaiveFeeOnClaim} =
+        PlutusTx.mkConstr
+            0
+            [ PlutusTx.toBuiltinData cscPrices
+            , PlutusTx.toBuiltinData cscFee
+            , PlutusTx.toBuiltinData cscBountyK
+            , PlutusTx.toBuiltinData cscWaiveFeeOnClaim
+            ]
+
+instance PlutusTx.FromData ConstantSumConfig where
+    fromBuiltinData dt = D.withConstr dt $ \case
+        (0, [prices, fee, bountyK, waiveFeeOnClaim]) ->
+            ConstantSumConfig
+                <$> PlutusTx.fromBuiltinData prices
+                <*> PlutusTx.fromBuiltinData fee
+                <*> PlutusTx.fromBuiltinData bountyK
+                <*> PlutusTx.fromBuiltinData waiveFeeOnClaim
+        _ -> Nothing
 
 data ActionEntry = ActionEntry
     { aeTag :: Integer
@@ -30,21 +101,21 @@ data ActionEntry = ActionEntry
     deriving stock (Eq, Show, Generic)
 
 instance Arbitrary ActionEntry where
-    arbitrary = ActionEntry <$> arbitrary <*> arbitrary <*> Gen.listOf arbitraryBuiltinByteString
+    arbitrary = ActionEntry <$> arbitrary <*> arbitrary <*> Gen.listOf D.arbitraryBuiltinByteString
 
 instance PlutusTx.ToData ActionEntry where
     toBuiltinData ActionEntry{aeTag, aeEnabled, aeModules} =
         PlutusTx.mkConstr
             0
             [ PlutusTx.mkI aeTag
-            , boolToData aeEnabled
+            , PlutusTx.toBuiltinData aeEnabled
             , PlutusTx.toBuiltinData aeModules
             ]
 
 instance PlutusTx.FromData ActionEntry where
     fromBuiltinData dt = D.withConstr dt $ \case
         (0, [D.getI -> Just aeTag, enabled, modules]) ->
-            ActionEntry aeTag <$> boolFromData enabled <*> PlutusTx.fromBuiltinData modules
+            ActionEntry aeTag <$> PlutusTx.fromBuiltinData enabled <*> PlutusTx.fromBuiltinData modules
         _ -> Nothing
 
 data ModuleState = ModuleState
@@ -54,14 +125,14 @@ data ModuleState = ModuleState
     deriving stock (Eq, Show, Generic)
 
 instance Arbitrary ModuleState where
-    arbitrary = ModuleState <$> arbitraryBuiltinByteString <*> arbitraryBuiltinByteString
+    arbitrary = ModuleState <$> D.arbitraryBuiltinByteString <*> D.arbitraryBuiltinByteString
 
 instance PlutusTx.ToData ModuleState where
     toBuiltinData ModuleState{msModuleHash, msState} =
         PlutusTx.mkList [PlutusTx.mkB msModuleHash, PlutusTx.mkB msState]
 
 instance PlutusTx.FromData ModuleState where
-    fromBuiltinData dt = fromList dt $ \case
+    fromBuiltinData dt = D.fromList dt $ \case
         [D.getB -> Just msModuleHash, D.getB -> Just msState] -> Just ModuleState{msModuleHash, msState}
         _ -> Nothing
 
@@ -83,7 +154,7 @@ instance Arbitrary PoolDatum where
             <*> (C.Quantity <$> arbitrary)
             <*> (C.Quantity <$> arbitrary)
             <*> (C.Quantity <$> arbitrary)
-            <*> arbitraryBuiltinByteString
+            <*> D.arbitraryBuiltinByteString
             <*> arbitrary
             <*> arbitrary
 
@@ -113,16 +184,41 @@ instance PlutusTx.FromData PoolDatum where
                 <*> PlutusTx.fromBuiltinData moduleState
         _ -> Nothing
 
-boolToData :: Bool -> PlutusTx.BuiltinData
-boolToData = \case
-    False -> PlutusTx.mkConstr 0 []
-    True -> PlutusTx.mkConstr 1 []
+instance ToJSON AssetAmount where
+    toJSON = Aeson.genericToJSON (jsonOptions 2)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 2)
 
-boolFromData :: PlutusTx.BuiltinData -> Maybe Bool
-boolFromData dt = D.withConstr dt $ \case
-    (0, []) -> Just False
-    (1, []) -> Just True
-    _ -> Nothing
+instance FromJSON AssetAmount where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 2)
+
+$(deriveTypeScript (jsonOptions 2) ''AssetAmount)
+
+instance Schema.ToSchema AssetAmount where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 2))
+
+instance ToJSON Rational where
+    toJSON = Aeson.genericToJSON (jsonOptions 1)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 1)
+
+instance FromJSON Rational where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 1)
+
+$(deriveTypeScript (jsonOptions 1) ''Rational)
+
+instance Schema.ToSchema Rational where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 1))
+
+instance ToJSON ConstantSumConfig where
+    toJSON = Aeson.genericToJSON (jsonOptions 3)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 3)
+
+instance FromJSON ConstantSumConfig where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 3)
+
+$(deriveTypeScript (jsonOptions 3) ''ConstantSumConfig)
+
+instance Schema.ToSchema ConstantSumConfig where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 3))
 
 instance ToJSON ActionEntry where
     toJSON = Aeson.genericToJSON (jsonOptions 2)

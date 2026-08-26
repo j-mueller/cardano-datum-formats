@@ -51,7 +51,7 @@ tests =
             "v4 order datum"
             [ testProperty "MultisigScript" (datumRoundTrip @OrderV4.MultisigScript)
             , testProperty "Credential" (datumRoundTrip @OrderV4.Credential)
-            , testProperty "StakeCredential" (datumRoundTrip @OrderV4.StakeCredential)
+            , testProperty "StakingCredential" (datumRoundTrip @OrderV4.StakingCredential)
             , testProperty "SundaeAddress" (datumRoundTrip @OrderV4.SundaeAddress)
             , testProperty "Destination" (datumRoundTrip @OrderV4.Destination)
             , testProperty "OrderConstraint" (datumRoundTrip @OrderV4.OrderConstraint)
@@ -60,23 +60,26 @@ tests =
             ]
         , testGroup
             "v4 pool datum"
-            [ testProperty "AssetAmount" (datumRoundTrip @PoolV4.AssetAmount)
+            [ testProperty "Rational" (datumRoundTrip @PoolV4.Rational)
+            , testProperty "ConstantSumConfig" (datumRoundTrip @PoolV4.ConstantSumConfig)
+            , testProperty "AssetAmount" (datumRoundTrip @PoolV4.AssetAmount)
             , testProperty "ActionEntry" (datumRoundTrip @PoolV4.ActionEntry)
             , testProperty "ModuleState" (datumRoundTrip @PoolV4.ModuleState)
             , testProperty "PoolDatum" (datumRoundTrip @PoolV4.PoolDatum)
+            , HUnit.testCase "decode SDK constant-sum config" decodeV4ConstantSumConfig
             , HUnit.testCase "decode sdk pool datum" decodeV4PoolDatum
             ]
         ]
 
 decodeV4OrderDatum :: HUnit.Assertion
 decodeV4OrderDatum = do
-    -- Canonical CBOR from the official SDK's blueprint cross-check.
+    -- Canonical SDK CBOR with its short mock hashes extended to valid Cardano hash lengths.
     let contractHex =
-            "d8799fd8799f50aabbccdd00112233445566778899aabbffd8799fd8799fd8799f50aabb0011223344556677889900112233ffd87a80ffd87a80ff1a0016e3601901f442aabb9f9f581d0011223344556677889900aabbccddeeff00112233445566778899aabbd8799f9f9fd8799f42aaaa41aaff1a000f4240ffff9f9fd8799f42bbbb41bbff1a000dbba0ffffffffffd87980ff"
+            "d8799fd8799f581caabbccdd00112233445566778899aabb000000000000000000000000ffd8799fd8799fd8799f581caabb0011223344556677889900112233000000000000000000000000ffd87a80ffd87a80ff1a0016e3601901f442aabb9f9f581d0011223344556677889900aabbccddeeff00112233445566778899aabbd8799f9f9fd8799f42aaaa41aaff1a000f4240ffff9f9fd8799f42bbbb41bbff1a000dbba0ffffffffffd87980ff"
     orderDatum <- either HUnit.assertFailure pure (Datum.fromBuiltinDataHex @OrderV4.OrderDatum contractHex)
     HUnit.assertEqual
         "owner"
-        (OrderV4.Signature $ hexToBuiltinByteString "aabbccdd00112233445566778899aabb")
+        (OrderV4.Signature $ mkPaymentKeyHash "aabbccdd00112233445566778899aabb000000000000000000000000")
         (OrderV4.odOwner orderDatum)
     HUnit.assertEqual "service budget" (C.Quantity 1_500_000) (OrderV4.odServiceBudget orderDatum)
     HUnit.assertEqual "max per execution" (C.Quantity 500) (OrderV4.odMaxPerExecution orderDatum)
@@ -99,6 +102,16 @@ decodeV4PoolDatum = do
     HUnit.assertEqual "action count" 1 (length $ PoolV4.pdActions poolDatum)
     HUnit.assertEqual "module state count" 3 (length $ PoolV4.pdModuleState poolDatum)
     assertDatumMatchesFixture sdkHex poolDatum
+
+decodeV4ConstantSumConfig :: HUnit.Assertion
+decodeV4ConstantSumConfig = do
+    let sdkHex = "d8799f9f0101ffd8799f010affd8799f0001ffd87980ff"
+    config <- either HUnit.assertFailure pure (Datum.fromBuiltinDataHex @PoolV4.ConstantSumConfig sdkHex)
+    HUnit.assertEqual "prices" [1, 1] (PoolV4.cscPrices config)
+    HUnit.assertEqual "fee" (PoolV4.Rational 1 10) (PoolV4.cscFee config)
+    HUnit.assertEqual "bounty" (PoolV4.Rational 0 1) (PoolV4.cscBountyK config)
+    HUnit.assertEqual "waive fee on claim" False (PoolV4.cscWaiveFeeOnClaim config)
+    assertDatumMatchesFixture sdkHex config
 
 assertDatumMatchesFixture :: (PlutusTx.ToData a) => String -> a -> HUnit.Assertion
 assertDatumMatchesFixture fixtureHex value = do

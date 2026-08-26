@@ -25,7 +25,7 @@ Pulse versioning notes:
 - The unversioned `Cardano.Protocol.Pulse.*` modules re-export the current latest layout, which is `V2`.
 - `V2` adds `locked` to `MarketInfoDatum`, `rewardSy` to `SYVaultDatum`, and `OAddSY` to `OrderDatum`.
 
-Sundae v4's composable order constraints and pool module state remain opaque data or bytes where the protocol blueprint does not define their module-specific payloads.
+Sundae v4's constant-sum configuration has a typed codec. Other composable order constraints and pool module state remain opaque data or bytes where the protocol blueprint does not define their module-specific payloads.
 
 Stability notes:
 
