@@ -10,6 +10,8 @@ module Cardano.Protocol.Sundae.V4.Order (
     BasicConstraint (..),
     SwapConstraint (..),
     FairnessConstraint (..),
+    FeeConstraint (..),
+    OrderConfig (..),
     OrderConstraint (..),
     mkOrderConstraint,
     swapIntentConstraints,
@@ -141,6 +143,43 @@ instance PlutusTx.FromData FairnessConstraint where
         (0, []) -> Just FairnessConstraint
         _ -> Nothing
 
+data FeeConstraint = FeeConstraint
+    deriving stock (Eq, Show, Generic)
+
+instance Arbitrary FeeConstraint where
+    arbitrary = pure FeeConstraint
+
+instance PlutusTx.ToData FeeConstraint where
+    toBuiltinData FeeConstraint = PlutusTx.mkConstr 0 []
+
+instance PlutusTx.FromData FeeConstraint where
+    fromBuiltinData dt = D.withConstr dt $ \case
+        (0, []) -> Just FeeConstraint
+        _ -> Nothing
+
+data OrderConfig = OrderConfig
+    { orderConfigLabel :: PlutusTx.BuiltinByteString
+    , orderConfigRequiredConstraints :: [PlutusTx.BuiltinByteString]
+    }
+    deriving stock (Eq, Show, Generic)
+
+instance Arbitrary OrderConfig where
+    arbitrary = OrderConfig <$> D.arbitraryBuiltinByteString <*> Gen.listOf D.arbitraryBuiltinByteString
+
+instance PlutusTx.ToData OrderConfig where
+    toBuiltinData OrderConfig{orderConfigLabel, orderConfigRequiredConstraints} =
+        PlutusTx.mkConstr
+            0
+            [ PlutusTx.mkB orderConfigLabel
+            , PlutusTx.toBuiltinData orderConfigRequiredConstraints
+            ]
+
+instance PlutusTx.FromData OrderConfig where
+    fromBuiltinData dt = D.withConstr dt $ \case
+        (0, [D.getB -> Just label, requiredConstraints]) ->
+            OrderConfig label <$> PlutusTx.fromBuiltinData requiredConstraints
+        _ -> Nothing
+
 data OrderConstraint = OrderConstraint
     { ocModuleHash :: PlutusTx.BuiltinByteString
     , ocData :: PlutusTx.BuiltinData
@@ -162,11 +201,11 @@ instance PlutusTx.FromData OrderConstraint where
 mkOrderConstraint :: (PlutusTx.ToData a) => PlutusTx.BuiltinByteString -> a -> OrderConstraint
 mkOrderConstraint moduleHash = OrderConstraint moduleHash . PlutusTx.toBuiltinData
 
--- | Build the basic-swap and fairness constraints used by a v4 swap intent.
+-- | Build the audit-final basic-swap and fee constraints used by a v4 swap intent.
 swapIntentConstraints :: PlutusTx.BuiltinByteString -> PlutusTx.BuiltinByteString -> AssetAmount -> [AssetAmount] -> [OrderConstraint]
-swapIntentConstraints basicModuleHash fairnessModuleHash offered minReceived =
+swapIntentConstraints basicModuleHash feeModuleHash offered minReceived =
     [ mkOrderConstraint basicModuleHash (BasicSwap [offered] minReceived)
-    , mkOrderConstraint fairnessModuleHash FairnessConstraint
+    , mkOrderConstraint feeModuleHash FeeConstraint
     ]
 
 data OrderDatum = OrderDatum
@@ -271,6 +310,30 @@ $(deriveTypeScript (sumOptions 0) ''FairnessConstraint)
 
 instance Schema.ToSchema FairnessConstraint where
     declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON FeeConstraint where
+    toJSON = Aeson.genericToJSON (sumOptions 0)
+    toEncoding = Aeson.genericToEncoding (sumOptions 0)
+
+instance FromJSON FeeConstraint where
+    parseJSON = Aeson.genericParseJSON (sumOptions 0)
+
+$(deriveTypeScript (sumOptions 0) ''FeeConstraint)
+
+instance Schema.ToSchema FeeConstraint where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (sumOptions 0))
+
+instance ToJSON OrderConfig where
+    toJSON = Aeson.genericToJSON (jsonOptions 11)
+    toEncoding = Aeson.genericToEncoding (jsonOptions 11)
+
+instance FromJSON OrderConfig where
+    parseJSON = Aeson.genericParseJSON (jsonOptions 11)
+
+$(deriveTypeScript (jsonOptions 11) ''OrderConfig)
+
+instance Schema.ToSchema OrderConfig where
+    declareNamedSchema = Schema.genericDeclareNamedSchema (SchemaOptions.fromAesonOptions (jsonOptions 11))
 
 instance ToJSON OrderConstraint where
     toJSON = Aeson.genericToJSON (jsonOptions 2)

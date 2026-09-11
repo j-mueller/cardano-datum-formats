@@ -58,6 +58,8 @@ tests =
             , testProperty "BasicConstraint" (datumRoundTrip @OrderV4.BasicConstraint)
             , testProperty "SwapConstraint" (datumRoundTrip @OrderV4.SwapConstraint)
             , testProperty "FairnessConstraint" (datumRoundTrip @OrderV4.FairnessConstraint)
+            , testProperty "FeeConstraint" (datumRoundTrip @OrderV4.FeeConstraint)
+            , testProperty "OrderConfig" (datumRoundTrip @OrderV4.OrderConfig)
             , testProperty "OrderConstraint" (datumRoundTrip @OrderV4.OrderConstraint)
             , testProperty "OrderDatum" (datumRoundTrip @OrderV4.OrderDatum)
             , HUnit.testCase "decode SDK basic swap constraint" decodeV4BasicSwapConstraint
@@ -108,25 +110,25 @@ decodeV4SwapConstraint = do
 buildV4SwapIntentConstraints :: HUnit.Assertion
 buildV4SwapIntentConstraints = do
     let basicHash = hexToBuiltinByteString "11"
-        fairnessHash = hexToBuiltinByteString "22"
+        feeHash = hexToBuiltinByteString "22"
         constraints =
             OrderV4.swapIntentConstraints
                 basicHash
-                fairnessHash
+                feeHash
                 (offeredAmount 1_000_000)
                 [receivedAmount 900_000]
-    HUnit.assertEqual "module hashes" [basicHash, fairnessHash] (OrderV4.ocModuleHash <$> constraints)
+    HUnit.assertEqual "module hashes" [basicHash, feeHash] (OrderV4.ocModuleHash <$> constraints)
     case constraints of
-        [basicConstraint, fairnessConstraint] -> do
+        [basicConstraint, feeConstraint] -> do
             HUnit.assertEqual
                 "basic payload"
                 (PlutusTx.toBuiltinData $ OrderV4.BasicSwap [offeredAmount 1_000_000] [receivedAmount 900_000])
                 (OrderV4.ocData basicConstraint)
             HUnit.assertEqual
-                "fairness payload"
+                "fee payload"
                 (PlutusTx.mkConstr 0 [])
-                (OrderV4.ocData fairnessConstraint)
-        _ -> HUnit.assertFailure "expected basic and fairness constraints"
+                (OrderV4.ocData feeConstraint)
+        _ -> HUnit.assertFailure "expected basic and fee constraints"
 
 offeredAmount :: Integer -> PoolV4.AssetAmount
 offeredAmount amount =
@@ -161,7 +163,7 @@ decodeV4PoolDatum :: HUnit.Assertion
 decodeV4PoolDatum = do
     -- Golden CBOR from the official SDK's v4 pool datum test.
     let sdkHex =
-            "d8799f9f9fd8799f42aaaa41aaff1903e8ff9fd8799f42bbbb41bbff1903e8ffff1903e8001903e844deadbeef9fd8799f1864d87a809f581c11111111111111111111111111111111111111111111111111111111581c22222222222222222222222222222222222222222222222222222222581c33333333333333333333333333333333333333333333333333333333ffffff9f9f581c1111111111111111111111111111111111111111111111111111111158201000fdabb5fe420325e8c9bf815eef8fd18f32b131bc5c9c62f568bdabc66621ff9f581c2222222222222222222222222222222222222222222222222222222244aabbccddff9f581c333333333333333333333333333333333333333333333333333333334180ffffff"
+            "d8799f9f9fd8799f42aaaa41aaff1903e8ff9fd8799f42bbbb41bbff1903e8ffff1903e8001903e844deadbeef9fd8799f1864d87a809f581c11111111111111111111111111111111111111111111111111111111581c22222222222222222222222222222222222222222222222222222222581c33333333333333333333333333333333333333333333333333333333ffffff9f9f581c1111111111111111111111111111111111111111111111111111111158201000fdabb5fe420325e8c9bf815eef8fd18f32b131bc5c9c62f568bdabc66621ff9f581c2222222222222222222222222222222222222222222222222222222244aabbccddff9f581c333333333333333333333333333333333333333333333333333333334180ffff1a004c4b40d87980ff"
     poolDatum <- either HUnit.assertFailure pure (Datum.fromBuiltinDataHex @PoolV4.PoolDatum sdkHex)
     HUnit.assertEqual "asset count" 2 (length $ PoolV4.pdAssets poolDatum)
     HUnit.assertEqual "total LP" (C.Quantity 1_000) (PoolV4.pdTotalLp poolDatum)
@@ -170,6 +172,8 @@ decodeV4PoolDatum = do
     HUnit.assertEqual "identifier" (hexToBuiltinByteString "deadbeef") (PoolV4.pdIdentifier poolDatum)
     HUnit.assertEqual "action count" 1 (length $ PoolV4.pdActions poolDatum)
     HUnit.assertEqual "module state count" 3 (length $ PoolV4.pdModuleState poolDatum)
+    HUnit.assertEqual "minimum surplus" (C.Quantity 5_000_000) (PoolV4.pdMinSurplus poolDatum)
+    HUnit.assertEqual "extension" (PlutusTx.mkConstr 0 []) (PoolV4.pdExtension poolDatum)
     assertDatumMatchesFixture sdkHex poolDatum
 
 decodeV4ConstantSumConfig :: HUnit.Assertion

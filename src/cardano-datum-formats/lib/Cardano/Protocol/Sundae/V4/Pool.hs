@@ -144,6 +144,8 @@ data PoolDatum = PoolDatum
     , pdIdentifier :: PlutusTx.BuiltinByteString
     , pdActions :: [ActionEntry]
     , pdModuleState :: [ModuleState]
+    , pdMinSurplus :: C.Quantity
+    , pdExtension :: PlutusTx.BuiltinData
     }
     deriving stock (Eq, Show, Generic)
 
@@ -157,9 +159,11 @@ instance Arbitrary PoolDatum where
             <*> D.arbitraryBuiltinByteString
             <*> arbitrary
             <*> arbitrary
+            <*> (C.Quantity <$> arbitrary)
+            <*> D.arbitraryBuiltinData
 
 instance PlutusTx.ToData PoolDatum where
-    toBuiltinData PoolDatum{pdAssets, pdTotalLp = C.Quantity totalLp, pdCirculatingLp = C.Quantity circulatingLp, pdPremintedLp = C.Quantity premintedLp, pdIdentifier, pdActions, pdModuleState} =
+    toBuiltinData PoolDatum{pdAssets, pdTotalLp = C.Quantity totalLp, pdCirculatingLp = C.Quantity circulatingLp, pdPremintedLp = C.Quantity premintedLp, pdIdentifier, pdActions, pdModuleState, pdMinSurplus = C.Quantity minSurplus, pdExtension} =
         PlutusTx.mkConstr
             0
             [ PlutusTx.toBuiltinData pdAssets
@@ -169,11 +173,13 @@ instance PlutusTx.ToData PoolDatum where
             , PlutusTx.mkB pdIdentifier
             , PlutusTx.toBuiltinData pdActions
             , PlutusTx.toBuiltinData pdModuleState
+            , PlutusTx.mkI minSurplus
+            , pdExtension
             ]
 
 instance PlutusTx.FromData PoolDatum where
     fromBuiltinData dt = D.withConstr dt $ \case
-        (0, [assets, totalLp, circulatingLp, premintedLp, D.getB -> Just identifier, actions, moduleState]) ->
+        (0, [assets, totalLp, circulatingLp, premintedLp, D.getB -> Just identifier, actions, moduleState, minSurplus, extension]) ->
             PoolDatum
                 <$> PlutusTx.fromBuiltinData assets
                 <*> fmap C.Quantity (D.getI totalLp)
@@ -182,6 +188,8 @@ instance PlutusTx.FromData PoolDatum where
                 <*> pure identifier
                 <*> PlutusTx.fromBuiltinData actions
                 <*> PlutusTx.fromBuiltinData moduleState
+                <*> fmap C.Quantity (D.getI minSurplus)
+                <*> pure extension
         _ -> Nothing
 
 instance ToJSON AssetAmount where
