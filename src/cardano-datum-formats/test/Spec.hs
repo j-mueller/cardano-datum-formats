@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Cardano.Protocol.Dano.Test qualified as Dano
 import Cardano.Protocol.GeniusYield.Test qualified as GeniusYield
 import Cardano.Protocol.Indigo.Test qualified as Indigo
 import Cardano.Protocol.Liqwid.Test qualified as Liqwid
@@ -17,7 +18,8 @@ main =
     defaultMain $
         testGroup
             "cardano-datum-formats"
-            [ GeniusYield.tests
+            [ Dano.tests
+            , GeniusYield.tests
             , Indigo.tests
             , Liqwid.tests
             , MinSwap.tests

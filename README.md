@@ -6,6 +6,7 @@ Typed Haskell representations of Cardano protocol datums, plus tests against rou
 
 | Protocol | Supported datum families | Stability | Destination datum |
 | --- | --- | --- | --- |
+| Dano | CLMM pool, protocol configuration, packed swap redeemer | 🟢 | ⚪ |
 | MinSwap | Orders, pools | 🟢 | 🟢 |
 | Sundae | `V1`, `V3`, and `V4` orders and pools | 🟢 | 🟢 |
 | Genius Yield | `PartialOrder`, `PartialOrderConfig`, `PartialOrderFeeOutput` | 🟢 | 🟠 |
@@ -18,6 +19,9 @@ Typed Haskell representations of Cardano protocol datums, plus tests against rou
 | WingRiders | Pools | 🟢 | ⚪ |
 
 Protocol-specific modules live under `Cardano.Protocol.*`.
+
+`Cardano.Protocol.Dano.Pool` implements exact integer CLMM quotes and reserve accounting. `Dano.Swap` encodes signed packed redeemers, and `Dano.Transaction` prepares native-token swaps and builds the pool spend plus zero withdrawal. ADA pools require additional staking-reward handling. Tests include SDK vectors and complete ledger emulator transactions using the deployed Plutus V3 validator in both directions, plus phase-2 rejection of excess output. The trading bot integration has confirmed swaps in both directions on preprod. Use the `ghc9103` Nix shell for the Convex transaction/emulator build.
+
 
 Pulse versioning notes:
 
