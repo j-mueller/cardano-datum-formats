@@ -8,6 +8,7 @@ license-files: LICENSE
 author:        Jann
 maintainer:    jann@localhost
 build-type:    Simple
+extra-source-files: test/data/dano-mainnet-validator.cbor
 extra-doc-files:
   README.md
 description:
@@ -53,6 +54,9 @@ library
     Cardano.Asset.Pair
     Cardano.Data
     Cardano.Transaction.OutputReference
+    Cardano.Protocol.Dano.Pool
+    Cardano.Protocol.Dano.Swap
+    Cardano.Protocol.Dano.Transaction
     Cardano.Protocol.GeniusYield.Common
     Cardano.Protocol.GeniusYield.PartialOrder
     Cardano.Protocol.Indigo.CDP
@@ -158,6 +162,8 @@ test-suite cardano-datum-formats-test
   hs-source-dirs: test
   main-is: Spec.hs
   other-modules:
+    Cardano.Protocol.Dano.Emulator
+    Cardano.Protocol.Dano.Test
     Cardano.Protocol.MinSwap.Test
     Cardano.Protocol.Indigo.Test
     Cardano.Protocol.GeniusYield.Test
@@ -180,3 +186,9 @@ test-suite cardano-datum-formats-test
     , tasty-quickcheck
     , text
     , containers
+    , bytestring
+    , mtl
+    , convex-base
+    , convex-mockchain
+    , convex-coin-selection
+    , convex-wallet
